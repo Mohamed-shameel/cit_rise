@@ -1,76 +1,167 @@
 # ⚡ CIT RISE — Research & Innovation Student Ecosystem
 
-> AI-powered campus innovation platform for Chennai Institute of Technology.
-> Built with FastAPI + React + Gemini AI + CareerNav AI.
+> An AI-powered campus innovation ecosystem that centralizes student achievements, career intelligence, and mentor connections — built for Chennai Institute of Technology.
+
+![Tech Stack](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square)
+![AI](https://img.shields.io/badge/AI-Gemini%201.5%20Flash-4285F4?style=flat-square)
+![CareerNav](https://img.shields.io/badge/Integrated-CareerNav%20AI-7c3aed?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 ---
 
-## Quick Start
+## 🧠 Problem
 
-### Requirements
-- **Python 3.13.x** — https://www.python.org/downloads/
-- **Node.js 18+** — https://nodejs.org/
+College innovation exists in silos. Clubs use Excel sheets. Students store certificates locally. Alumni are only reachable via LinkedIn. The institution cannot answer: *"Who are our top innovators? Which startups are active? How is innovation growing?"*
 
-### Step 1 — Gemini API Key (free, 2 min)
-1. Go to https://aistudio.google.com/app/apikey
-2. Click **Create API Key**
-3. Copy the key (starts with `AIza...`)
+**CIT RISE solves this** — one centralized platform that manages the entire campus innovation ecosystem.
 
-### Step 2 — Backend
+---
+
+## 🎯 What CIT RISE Does
+
+| Feature | Type |
+|--------|------|
+| AI profile generation from resume | 🤖 Gemini AI |
+| RISE Innovation Score (CIBIL-like) | 🤖 Gemini AI |
+| Personalized career roadmap | 🤖 Gemini AI |
+| GitHub repo analysis + skill detection | 🤖 CareerNav × GitHub API |
+| LeetCode stats + DSA study plan | 🤖 CareerNav × LeetCode API |
+| Admin talent intelligence dashboard | 🤖 Gemini AI |
+| AI chat assistant (EduBot) | 🤖 Gemini AI |
+| Achievement tracking + verification | 👤 Manual (Admin) |
+| Mentor/alumni matching | ⚡ Skill-based |
+| Opportunity broadcasting | 👤 Manual (Admin) |
+
+**AI Coverage: ~75%** — AI handles intelligence, humans handle governance.
+
+---
+
+## 🏗 Architecture
+
+```
+React Frontend
+      ↓  REST API
+FastAPI Backend
+      ↓
+In-Memory Store (demo) → Firestore (production)
+      ↓
+Gemini 1.5 Flash API  +  GitHub Public API  +  LeetCode GraphQL API
+```
+
+---
+
+## 🔬 CareerNav AI Integration
+
+CIT RISE integrates **CareerNav AI** (Team Helios) for developer intelligence:
+
+- **GitHub Analysis** — fetches real repos via GitHub public API, Gemini classifies domain, skill level, career readiness, open source score
+- **LeetCode Analysis** — fetches real stats via LeetCode GraphQL, Gemini generates personalized DSA study plan and interview readiness assessment
+- Skills detected from GitHub are automatically merged into the student's CIT RISE profile and trigger an AI score recalculation
+
+---
+
+## 🧩 Modules
+
+1. **Innovation Profile System** — AI-generated student profiles from resume text
+2. **RISE Score Engine** — AI-calculated innovation score with reasoning (not rule-based)
+3. **Career Roadmap** — Personalized AI roadmap with milestones, skill gaps, salary outlook
+4. **CareerNav Intelligence** — GitHub + LeetCode live analysis
+5. **Mentor & Alumni Engagement** — Skill-based mentor matching
+6. **Event & Achievement Tracker** — Upload achievements, admin verification
+7. **Opportunity Broadcasting** — Internships, competitions, research openings
+8. **Admin Dashboard** — Analytics, AI talent insights, NAAC/NIRF ready
+
+---
+
+## 🚀 Running Locally
+
+### Prerequisites
+- Python 3.8+
+- Node.js 16+
+- Gemini API key (free at [aistudio.google.com](https://aistudio.google.com/app/apikey))
+
+### Backend
+
 ```bash
 cd backend
-python -m venv venv
-
-# Windows:
-venv\Scripts\activate
-# Mac/Linux:
-source venv/bin/activate
-
 pip install -r requirements.txt
 
-# Create .env file:
-echo GEMINI_API_KEY=your_key_here > .env
-
+# Create .env file
+echo "GEMINI_API_KEY=your_key_here" > .env
+# optionally override model (default is gemini-2.5-flash)
+# echo "GEMINI_MODEL=gemini-2.5-flash" >> .env
+# Start server
 uvicorn main:app --reload
+# API docs at http://localhost:8000/docs
 ```
-Backend runs at: http://localhost:8000
-API docs at: http://localhost:8000/docs
 
-### Step 3 — Frontend (new terminal)
+### Frontend
+
 ```bash
 cd frontend
 npm install
 npm start
+# App at http://localhost:3000
 ```
-Frontend runs at: http://localhost:3000
 
 ---
 
-## Demo Login
-| Role | User ID |
-|------|---------|
-| Student | `student_demo` |
-| Admin | `admin_001` |
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/users/ai-profile-from-resume` | AI generates profile from resume |
+| `POST` | `/ai/recalculate-score` | AI calculates CIT RISE score |
+| `POST` | `/ai/career-roadmap` | AI generates career roadmap |
+| `GET`  | `/ai/admin-insights` | AI talent intelligence |
+| `POST` | `/ai/chat` | AI assistant chat |
+| `POST` | `/careernav/github` | GitHub repo analysis |
+| `POST` | `/careernav/leetcode` | LeetCode stats + study plan |
+| `POST` | `/achievements/add` | Add achievement |
+| `PUT`  | `/achievements/{id}/verify` | Admin: verify achievement |
+| `GET`  | `/admin/dashboard` | Admin overview |
+| `GET`  | `/mentors/recommend/{id}` | Mentor recommendations |
+
+Full interactive docs at `/docs` when running locally.
 
 ---
 
-## Features
-- AI profile generation from PDF resume upload
-- CIT RISE Innovation Score (AI-calculated, not rule-based)
-- Personalized career roadmap (CareerNav AI)
-- Live GitHub repo analysis
-- Live LeetCode stats + DSA study plan
-- AI chat assistant
-- Admin talent intelligence dashboard
-- Achievement tracking + manual verification
-- Mentor matching by skill
-- Opportunity broadcasting
+## 🖥 Demo Flow
 
-## Tech Stack
+```
+1. Login as student  →  student@spark.in / spark123
+2. AI Profile Gen    →  paste resume → Gemini builds profile + score
+3. CareerNav         →  enter GitHub username → live repo analysis
+4. CareerNav         →  enter LeetCode username → DSA study plan
+5. Career Roadmap    →  AI generates personalized roadmap
+6. Login as admin    →  admin@spark.in / admin123
+7. Admin Dashboard   →  verify achievements, AI talent insights
+```
+
+---
+
+## 🛠 Tech Stack
+
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18 |
-| Backend | Python 3.13, FastAPI |
-| AI | Google Gemini 1.5 Flash |
+| Frontend | React 18, CSS-in-JS |
+| Backend | Python, FastAPI |
+| AI | Google Gemini 2.5 Flash (or whichever model your API key supports) |
 | External APIs | GitHub Public API, LeetCode GraphQL |
-| PDF Parsing | pdfplumber |
+| Database | In-memory (demo) → Firebase Firestore (production) |
+| Deployment | Render (backend), Vercel (frontend) |
+
+---
+
+## 👥 Team
+
+**Team CIT RISE** — Chennai Institute of Technology
+
+- Built for the college innovation ecosystem
+- CareerNav AI integration by Team Helios
+
+---
+
+## 📄 License
+
+MIT License — see [LICENSE](LICENSE) for details.

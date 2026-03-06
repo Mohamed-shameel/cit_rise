@@ -4,7 +4,7 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import users, achievements, ai, admin, opportunities, mentors, careernav
+from routes import users, achievements, ai, admin, opportunities, mentors, careernav, ideas
 
 app = FastAPI(title="CIT RISE API", version="1.0.0",
     description="Research & Innovation Student Ecosystem — CIT Chennai")
@@ -19,6 +19,7 @@ app.include_router(admin.router,        prefix="/admin",       tags=["Admin"])
 app.include_router(opportunities.router,prefix="/opportunities",tags=["Opportunities"])
 app.include_router(mentors.router,      prefix="/mentors",     tags=["Mentors"])
 app.include_router(careernav.router,    prefix="/careernav",   tags=["CareerNav AI"])
+app.include_router(ideas.router,        prefix="/ideas",       tags=["Ideas"])
 
 @app.get("/")
 def root():

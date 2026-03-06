@@ -1,9 +1,19 @@
 from datetime import datetime
+import uuid
 
 users_db: dict = {}
 achievements_db: dict = {}
 mentors_db: dict = {}
 opportunities_db: dict = {}
+user_opportunities: dict = {}  # M2M: user_id + opp_id + status
+deduplication_log: dict = {}  # Track merged opportunities
+scraper_logs: dict = {}  # Track scraping operations
+source_tracking: dict = {}  # Map source_id to opp_id for quick lookup
+
+# Ideas submission system
+ideas_db: dict = {}  # key: idea_id, value: {id, student_id, title, description, category, feasibility_score, mentor_suggestions, status, ...}
+idea_comments_db: dict = {}  # key: idea_id, value: [{admin_id, comment, timestamp}, ...]
+idea_submissions_log: dict = {"total": 0, "categories": {}}  # Analytics
 
 def seed():
     mentors_db.update({
@@ -44,9 +54,56 @@ def seed():
     })
     opportunities_db.update({
         "o1":{"opportunity_id":"o1","title":"AI Research Internship - IIT Madras","description":"Summer internship in NLP lab.",
-              "domain":"AI/ML","deadline":"2026-04-01","type":"internship","posted_by":"admin","created_at":datetime.utcnow().isoformat()},
+              "domain":["AI/ML", "Research"],"deadline":"2026-04-01","type":"internship","posted_by":"admin",
+              "source":"admin","source_id":"admin_o1","source_url":"","verified":True,
+              "company":"IIT Madras","location":"Chennai","salary_range":"₹15,000/month","duration":"3 months",
+              "department_fit":["CSE","CSE AI"],"eligibility":{"min_cgpa":3.0,"year":[2,3]},
+              "ai_analysis":{"relevance_score":8.5,"difficulty_level":"Medium","learning_value":"High","category_confidence":0.95},
+              "created_at":datetime.utcnow().isoformat(),"updated_at":datetime.utcnow().isoformat()},
         "o2":{"opportunity_id":"o2","title":"Startup Pitch - NASSCOM","description":"Present your startup. Winner gets Rs.5L seed funding.",
-              "domain":"Startup","deadline":"2026-03-20","type":"competition","posted_by":"admin","created_at":datetime.utcnow().isoformat()},
+              "domain":["Startup","Entrepreneurship"],"deadline":"2026-03-20","type":"competition","posted_by":"admin",
+              "source":"admin","source_id":"admin_o2","source_url":"","verified":True,
+              "company":"NASSCOM","location":"National","salary_range":"₹5,00,000 prize","duration":"1 day event",
+              "department_fit":["CSE","CSE AI","IT"],"eligibility":{"min_cgpa":0.0,"year":[1,2,3,4]},
+              "ai_analysis":{"relevance_score":7.0,"difficulty_level":"Medium","learning_value":"Medium","category_confidence":0.92},
+              "created_at":datetime.utcnow().isoformat(),"updated_at":datetime.utcnow().isoformat()},
     })
+    
+    # Sample ideas
+    ideas_db.update({
+        "idea-sample-1": {
+            "id": "idea-sample-1",
+            "student_id": "student_demo",
+            "title": "AI-Powered Tutoring Platform",
+            "description": "An intelligent tutoring system that adapts to student learning pace using ML and NLP for personalized learning paths.",
+            "category": "Education Tech",
+            "feasibility_score": 85,
+            "mentor_suggestions": ["Dr. Priya Ramesh"],
+            "status": "pending",
+            "submitted_at": datetime.utcnow().isoformat(),
+            "reviewed_at": None,
+            "qr_code_url": "/qr/idea-sample-1.png",
+            "rise_score_impact": 0
+        },
+        "idea-sample-2": {
+            "id": "idea-sample-2",
+            "student_id": "student_demo",
+            "title": "Smart Waste Management IoT",
+            "description": "IoT sensors for real-time waste bin monitoring and optimization of collection routes.",
+            "category": "IoT & Sustainability",
+            "feasibility_score": 72,
+            "mentor_suggestions": ["Rahul Nair"],
+            "status": "reviewed",
+            "submitted_at": "2026-02-15T10:30:00",
+            "reviewed_at": "2026-02-20T14:45:00",
+            "qr_code_url": "/qr/idea-sample-2.png",
+            "rise_score_impact": 20
+        },
+    })
+    
+    idea_submissions_log["total"] = len(ideas_db)
+    for idea in ideas_db.values():
+        cat = idea.get("category", "Other")
+        idea_submissions_log["categories"][cat] = idea_submissions_log["categories"].get(cat, 0) + 1
 
 seed()

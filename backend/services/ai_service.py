@@ -3,7 +3,9 @@ import httpx
 from typing import Optional
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent"
+# allow overriding the model name via env variable in case Google changes names
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1/models/{GEMINI_MODEL}:generateContent"
 
 
 async def call_gemini(prompt: str, system: str = "") -> str:
@@ -173,3 +175,71 @@ JSON: {{"dsa_level":"Beginner/Intermediate/Advanced","strong_areas":["list"],"we
         "next_milestone":f"Reach {total+50} total solved","company_targets":["Product startups","Service companies"],
         "lc_summary":f"Solved {total} total. Consistent practice recommended."})
     return {"raw":raw,"ai_analysis":ai}
+
+
+async def analyze_idea(title: str, description: str) -> dict:
+    """
+    AI analysis of student innovation idea
+    - Categorizes idea
+    - Scores feasibility (0-100)
+    - Suggests relevant mentors (from mentors_db keys)
+    - Returns structured analysis for idea submission
+    """
+    sys = "You are CIT RISE Ideas AI. Analyze innovation ideas for feasibility and category. JSON only."
+    prompt = f"""Analyze this student innovation idea:
+
+Title: {title}
+Description: {description}
+
+Provide:
+1. Category (e.g., Education Tech, IoT & Sustainability, FinTech, HealthTech, Social Impact, etc.)
+2. Feasibility score 0-100 (considering scope, timeline, resources in college context)
+3. 2-3 relevant mentor field suggestions (from: ML, Full Stack, Product, Robotics)
+4. Brief feasibility reasoning
+
+Return JSON only:
+{{
+    "category": "string",
+    "feasibility_score": 75,
+    "mentor_field_suggestions": ["ML", "Full Stack"],
+    "feasibility_reasoning": "string",
+    "implementation_complexity": "Low/Medium/High",
+    "potential_impact": "High/Medium/Low",
+    "suggested_first_steps": ["step 1", "step 2", "step 3"]
+}}"""
+    
+    raw = await call_gemini(prompt, sys)
+    result = parse(raw, {
+        "category": "Innovation",
+        "feasibility_score": 60,
+        "mentor_field_suggestions": ["Full Stack"],
+        "feasibility_reasoning": "Moderate complexity idea. Good learning opportunity.",
+        "implementation_complexity": "Medium",
+        "potential_impact": "Medium",
+        "suggested_first_steps": ["Research similar projects", "Create MVP plan", "Start with MVP"]
+    })
+    
+    # Map mentor field suggestions to actual mentors from mentors_db
+    # This is a simplified mapping
+    from config.store import mentors_db
+    mentor_map = {
+        "ML": "m1",
+        "Full Stack": "m2", 
+        "Product": "m3",
+        "Robotics": "m4"
+    }
+    
+    suggested_mentor_ids = []
+    for field in result.get("mentor_field_suggestions", []):
+        if field in mentor_map:
+            mentor_id = mentor_map[field]
+            if mentor_id in mentors_db:
+                suggested_mentor_ids.append(mentor_id)
+    
+    # If no mentors found, use first 2 mentors
+    if not suggested_mentor_ids and mentors_db:
+        suggested_mentor_ids = list(mentors_db.keys())[:2]
+    
+    result["mentor_suggestions"] = suggested_mentor_ids
+    
+    return result
