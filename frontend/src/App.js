@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from 'react';
 
+import AdminOpportunitiesPanel from './pages/AdminOpportunities';
 const API = "";  // empty = uses proxy to localhost:8000
 
 const styles = `
@@ -1336,6 +1337,152 @@ const AdminDashboard = () => {
   );
 };
 
+// ── SUBMIT IDEA PAGE ────────────────────────────────────────────────────────
+const SubmitIdeaPage = ({user}) => {
+  return (
+    <div className="page">
+      <div className="page-header fade-up">
+        <div className="page-title">Submit an Idea</div>
+        <div className="page-subtitle">Innovation Portal — Have a startup or research idea?</div>
+      </div>
+      <div className="grid-2 fade-up-2">
+        <div className="card" style={{textAlign:"center", padding:"40px 20px"}}>
+          <div style={{fontSize:48, marginBottom:16}}>📱</div>
+          <div style={{fontWeight:700, fontSize:18, marginBottom:8}}>Scan to Submit</div>
+          <img src="/CITBIF_QR.jpeg" alt="QR Code to Form" style={{width:"100%", maxWidth:240, margin:"0 auto 20px", borderRadius:12, border:"1px solid var(--border)"}}/>
+          <div style={{fontFamily:"var(--mono)", fontSize:13, color:"var(--text3)", marginBottom:20}}>
+            Uses Google Forms for seamless data collection.
+          </div>
+          <a href="https://scnv.io/dx3g?qr=1" target="_blank" rel="noreferrer" className="btn btn-primary" style={{textDecoration:"none"}}>
+            Open Web Form →
+          </a>
+        </div>
+        <div className="card">
+          <div className="card-title">What happens next?</div>
+          <div style={{display:"flex",gap:12,marginBottom:16}}>
+            <div style={{width:28,height:28,borderRadius:14,background:"var(--surface2)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"var(--text2)",flexShrink:0}}>1</div>
+            <div>
+              <div style={{fontWeight:600,marginBottom:2}}>Submit Form</div>
+              <div style={{fontSize:13,color:"var(--text3)"}}>Fill out the Google Form with your idea details.</div>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:12,marginBottom:16}}>
+            <div style={{width:28,height:28,borderRadius:14,background:"var(--surface2)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"var(--text2)",flexShrink:0}}>2</div>
+            <div>
+              <div style={{fontWeight:600,marginBottom:2}}>AI Analysis</div>
+              <div style={{fontSize:13,color:"var(--text3)"}}>Gemini automatically scores feasibility and suggests mentors.</div>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:12,marginBottom:16}}>
+            <div style={{width:28,height:28,borderRadius:14,background:"var(--surface2)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"var(--accent)",flexShrink:0}}>3</div>
+            <div>
+              <div style={{fontWeight:600,marginBottom:2}}>Admin Review</div>
+              <div style={{fontSize:13,color:"var(--text3)"}}>Admins review and assign RISE score boosts (+20-40 pts).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── ADMIN IDEAS PAGE ────────────────────────────────────────────────────────
+const AdminIdeasPage = ({user}) => {
+  const [ideas, setIdeas] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
+  const [msg, setMsg] = useState("");
+
+  const load = async () => {
+    try {
+      const d = await api("/ideas/admin/list?limit=100");
+      setIdeas(d.ideas || []);
+      setStats(d.analytics);
+    } catch {}
+    setLoading(false);
+  };
+  
+  useEffect(() => { load(); }, []);
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true); setMsg("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const d = await apiForm("/ideas/admin/import-csv", fd);
+      setMsg(d.message || "Imported successfully.");
+      await load();
+    } catch (err) {
+      setMsg(err.message || "Import failed.");
+    }
+    setUploading(false);
+    if(fileRef.current) fileRef.current.value = "";
+  };
+
+  const reviewIdea = async (id, status) => {
+    try {
+      await api(`/ideas/${id}/review`, {method:"POST", body:JSON.stringify({status})});
+      await load();
+    } catch (e) { alert("Failed to review: " + e.message); }
+  };
+
+  return (
+    <div className="page">
+      <div className="page-header fade-up" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div><div className="page-title">Manage Ideas</div><div className="page-subtitle">Review student ideas and assign RISE scores</div></div>
+        <div style={{display:"flex",gap:10}}>
+          <input type="file" accept=".csv" ref={fileRef} style={{display:"none"}} onChange={handleImport}/>
+          <button className="btn btn-primary" onClick={()=>fileRef.current?.click()} disabled={uploading}>
+            {uploading ? <><Spinner/>Importing...</> : "📥 Import CSV"}
+          </button>
+        </div>
+      </div>
+      
+      {msg && <div className="alert alert-info fade-up-2">{msg}</div>}
+
+      {loading ? <Spinner/> : (
+        <div className="grid-2 fade-up-3">
+          {ideas.map(i => (
+            <div className="card" key={i.id}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:15,marginBottom:4}}>{i.title}</div>
+                  <span className={`badge ${i.status==="selected"?"badge-green":i.status==="rejected"?"badge-red":i.status==="reviewed"?"badge-blue":"badge-amber"}`}>{i.status.toUpperCase()}</span>
+                  <span className="badge badge-purple" style={{marginLeft:4}}>{i.category}</span>
+                </div>
+              </div>
+              <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.5,marginBottom:10}}>{i.description}</div>
+              <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text3)",marginBottom:12}}>
+                By: {i.student_id} · AI Feasibility: {i.feasibility_score}/100
+              </div>
+              
+              {i.mentor_suggestions?.length > 0 && (
+                <div style={{marginBottom:12}}>
+                  <div style={{fontSize:11,fontFamily:"var(--mono)",color:"var(--text3)",marginBottom:4}}>Suggested Mentors:</div>
+                  {i.mentor_suggestions.map(m=><Tag key={m} label={m}/>)}
+                </div>
+              )}
+
+              {i.status === "pending" && (
+                <div style={{display:"flex",gap:8,borderTop:"1px solid var(--border)",paddingTop:12}}>
+                  <button className="btn btn-success btn-sm" onClick={()=>reviewIdea(i.id, "selected")}>+40pts (Select)</button>
+                  <button className="btn btn-secondary btn-sm" onClick={()=>reviewIdea(i.id, "reviewed")}>+20pts (Review)</button>
+                  <button className="btn btn-danger btn-sm" onClick={()=>reviewIdea(i.id, "rejected")}>Reject</button>
+                </div>
+              )}
+            </div>
+          ))}
+          {ideas.length === 0 && <div style={{gridColumn:"1/-1",textAlign:"center",padding:48,color:"var(--text3)",fontFamily:"var(--mono)"}}>No ideas submitted yet. Import CSV to begin.</div>}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── APP SHELL ─────────────────────────────────────────────────────────────────
 const STUDENT_NAV = [
   {id:"dashboard",label:"Dashboard",icon:"⚡"},
@@ -1345,11 +1492,13 @@ const STUDENT_NAV = [
   {id:"careernav",label:"CareerNav AI",icon:"🔬"},
   {id:"mentors",label:"Mentors",icon:"🤝"},
   {id:"opportunities",label:"Opportunities",icon:"🎯"},
+  {id:"submit-idea",label:"Submit Idea",icon:"💡"},
   {id:"chat",label:"AI Assistant",icon:"💬"},
 ];
 const ADMIN_NAV = [
   {id:"admin",label:"Admin Dashboard",icon:"🛡"},
   {id:"opportunities",label:"Opportunities",icon:"🎯"},
+  {id:"admin-ideas",label:"Manage Ideas",icon:"💡"},
   {id:"mentors",label:"Mentors",icon:"🤝"},
 ];
 
@@ -1372,20 +1521,22 @@ export default function App() {
   );
 
   const nav = user.role==="admin"?ADMIN_NAV:STUDENT_NAV;
-  const renderPage = () => {
-    switch(page){
-      case "dashboard":    return <StudentDashboard user={user} setPage={setPage}/>;
-      case "ai-profile":   return <AIProfilePage user={user}/>;
-      case "score":        return <RiseScorePage user={user}/>;
-      case "roadmap":      return <CareerRoadmapPage user={user}/>;
-      case "careernav":    return <CareerNavPage user={user}/>;
-      case "mentors":      return <MentorsPage user={user}/>;
-      case "opportunities":return <OpportunitiesPage user={user}/>;
-      case "chat":         return <ChatPage user={user}/>;
-      case "admin":        return <AdminDashboard/>;
-      default:             return <StudentDashboard user={user} setPage={setPage}/>;
-    }
-  };
+    const renderPage = () => {
+      switch(page){
+        case "dashboard":    return <StudentDashboard user={user} setPage={setPage}/>;
+        case "ai-profile":   return <AIProfilePage user={user}/>;
+        case "score":        return <RiseScorePage user={user}/>;
+        case "roadmap":      return <CareerRoadmapPage user={user}/>;
+        case "careernav":    return <CareerNavPage user={user}/>;
+        case "mentors":      return <MentorsPage user={user}/>;
+        case "opportunities":return user.role === "admin" ? <AdminOpportunitiesPanel user={user}/> : <OpportunitiesPage user={user}/>;
+        case "submit-idea":  return <SubmitIdeaPage user={user}/>;
+        case "admin-ideas":  return <AdminIdeasPage user={user}/>;
+        case "chat":         return <ChatPage user={user}/>;
+        case "admin":        return <AdminDashboard/>;
+        default:             return <StudentDashboard user={user} setPage={setPage}/>;
+      }
+    };
 
   return (
     <><style>{styles}</style>

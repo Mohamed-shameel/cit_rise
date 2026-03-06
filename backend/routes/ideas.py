@@ -3,14 +3,13 @@ Ideas Submission System Routes
 Allows students to submit innovation ideas, get AI analysis, and admins to review
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from pydantic import BaseModel
 from datetime import datetime
 import uuid
 import os
-import qrcode
-from io import BytesIO
-import base64
+import csv
+import io
 
 from config.store import ideas_db, idea_comments_db, idea_submissions_log, mentors_db, users_db
 from services.ai_service import analyze_idea
@@ -45,91 +44,11 @@ def get_admin_user(user_id: str = None):
         raise HTTPException(status_code=403, detail="Admin access required")
     return user
 
-# Helper: Generate QR code
-def generate_qr_code(idea_id: str) -> str:
-    """Generate QR code that links to idea submission form"""
-    qr_url = f"http://localhost:3000/submit-idea?idea_id={idea_id}"
-    qr = qrcode.QRCode(version=1, box_size=10, border=5)
-    qr.add_data(qr_url)
-    qr.make(fit=True)
-    
-    img = qr.make_image(fill_color="black", back_color="white")
-    
-    # Ensure directory exists
-    os.makedirs("qr_codes", exist_ok=True)
-    filepath = f"qr_codes/{idea_id}.png"
-    img.save(filepath)
-    
-    return f"/qr/{idea_id}.png"
-
 # Helper: Generate idea ID
 def gen_idea_id():
     return str(uuid.uuid4())
 
 # ============== STUDENT ENDPOINTS ==============
-
-@router.post("/submit")
-async def submit_idea(data: IdeaSubmit, user_id: str = "student_demo"):
-    """
-    Student submits a new innovation idea
-    - Title and description required
-    - AI analysis triggered automatically
-    - QR code generated for sharing
-    - Returns: idea_id, qr_url, ai_analysis
-    """
-    if not data.title or len(data.title.strip()) < 5:
-        raise HTTPException(status_code=400, detail="Title must be at least 5 characters")
-    if not data.description or len(data.description.strip()) < 20:
-        raise HTTPException(status_code=400, detail="Description must be at least 20 characters")
-    
-    idea_id = gen_idea_id()
-    
-    try:
-        # Get AI analysis (category, feasibility, mentor suggestions)
-        ai_analysis = await analyze_idea(data.title, data.description)
-    except Exception as e:
-        ai_analysis = {
-            "category": "General Innovation",
-            "feasibility_score": 50,
-            "mentor_suggestions": list(mentors_db.keys())[:2] if mentors_db else [],
-            "error": str(e)
-        }
-    
-    # Generate QR code
-    qr_url = generate_qr_code(idea_id)
-    
-    # Create idea record
-    idea = {
-        "id": idea_id,
-        "student_id": user_id,
-        "title": data.title,
-        "description": data.description,
-        "category": ai_analysis.get("category", "General Innovation"),
-        "feasibility_score": ai_analysis.get("feasibility_score", 50),
-        "mentor_suggestions": ai_analysis.get("mentor_suggestions", []),
-        "status": "pending",  # pending, reviewed, selected, rejected
-        "submitted_at": datetime.utcnow().isoformat(),
-        "reviewed_at": None,
-        "qr_code_url": qr_url,
-        "rise_score_impact": 0
-    }
-    
-    # Store in database
-    ideas_db[idea_id] = idea
-    idea_comments_db[idea_id] = []
-    
-    # Update analytics
-    idea_submissions_log["total"] = len(ideas_db)
-    cat = idea["category"]
-    idea_submissions_log["categories"][cat] = idea_submissions_log["categories"].get(cat, 0) + 1
-    
-    return {
-        "success": True,
-        "idea_id": idea_id,
-        "qr_url": qr_url,
-        "ai_analysis": ai_analysis,
-        "message": "Idea submitted successfully! Share QR code with peers or admin."
-    }
 
 @router.get("/my-ideas")
 def get_my_ideas(user_id: str = "student_demo"):
@@ -200,6 +119,76 @@ def admin_list_ideas(
         "ideas": paginated,
         "analytics": idea_submissions_log
     }
+
+@router.post("/admin/import-csv")
+async def import_ideas_csv(file: UploadFile = File(...), admin_user_id: str = "admin"):
+    """
+    Admin imports ideas from a Google Forms CSV
+    """
+    _ = get_admin_user(admin_user_id) 
+    
+    try:
+        content = await file.read()
+        decoded = content.decode('utf-8')
+        reader = csv.DictReader(io.StringIO(decoded))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid CSV file: {str(e)}")
+        
+    imported_count = 0
+    for row in reader:
+        keys = {k.lower().strip(): k for k in row.keys() if k}
+        
+        # Heuristics to find columns
+        title_key = next((keys[k] for k in keys if "title" in k or "idea" in k or "name" in k), None)
+        desc_key = next((keys[k] for k in keys if "desc" in k or "detail" in k or "explain" in k), None)
+        student_key = next((keys[k] for k in keys if "email" in k or "student" in k or "roll" in k or "id" in k), None)
+        
+        if not title_key and not desc_key:
+            cols = list(row.keys())
+            if len(cols) >= 2:
+                title_key = cols[1]
+                desc_key = cols[2] if len(cols) > 2 else cols[1]
+                
+        title = row.get(title_key, "Unknown Title") if title_key else "Unknown Title"
+        desc = row.get(desc_key, "No description") if desc_key else "No description"
+        student_id = row.get(student_key, "student_demo") if student_key else "student_demo"
+        
+        # AI Analysis
+        try:
+            ai_analysis = await analyze_idea(title, desc)
+        except Exception as e:
+            ai_analysis = {
+                "category": "General Innovation",
+                "feasibility_score": 50,
+                "mentor_suggestions": list(mentors_db.keys())[:2] if mentors_db else [],
+                "error": str(e)
+            }
+            
+        idea_id = gen_idea_id()
+        idea = {
+            "id": idea_id,
+            "student_id": student_id,
+            "title": title[:100], # max 100 char title
+            "description": desc,
+            "category": ai_analysis.get("category", "General Innovation"),
+            "feasibility_score": ai_analysis.get("feasibility_score", 50),
+            "mentor_suggestions": ai_analysis.get("mentor_suggestions", []),
+            "status": "pending",
+            "submitted_at": datetime.utcnow().isoformat(),
+            "reviewed_at": None,
+            "qr_code_url": "", # Google form static QR
+            "rise_score_impact": 0
+        }
+        
+        ideas_db[idea_id] = idea
+        idea_comments_db[idea_id] = []
+        imported_count += 1
+        
+        idea_submissions_log["total"] = len(ideas_db)
+        cat = idea["category"]
+        idea_submissions_log["categories"][cat] = idea_submissions_log["categories"].get(cat, 0) + 1
+
+    return {"success": True, "imported": imported_count, "message": f"Successfully imported and analyzed {imported_count} ideas"}
 
 @router.post("/{idea_id}/review")
 def admin_review_idea(idea_id: str, data: IdeaReview, admin_user_id: str = "admin"):

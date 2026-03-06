@@ -69,56 +69,51 @@ async def scrape_unstop() -> List[Dict]:
 
 async def scrape_unstop_html() -> List[Dict]:
     """
-    Fallback: Scrape Unstop using BeautifulSoup if API unavailable
-    This parses the HTML directly from the opportunities page
+    Fetch opportunities directly from Unstop's public API
+    (Replaces the broken beautifulsoup HTML scraper)
     """
-    from bs4 import BeautifulSoup
     opportunities = []
     
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            url = "https://unstop.com/opportunities"
+            url = "https://unstop.com/api/public/opportunity/search-result?opportunity=competitions"
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             }
             
             response = await client.get(url, headers=headers)
             if response.status_code != 200:
-                logger.warning(f"Unstop HTML scrape failed: {response.status_code}")
+                logger.warning(f"Unstop API scrape failed: {response.status_code}")
                 return opportunities
+                
+            data = response.json()
+            items = data.get("data", {}).get("data", [])
             
-            soup = BeautifulSoup(response.text, "html.parser")
-            
-            # Find all opportunity cards (adjust selectors based on Unstop's HTML structure)
-            cards = soup.find_all("div", class_="opportunity-card")
-            
-            for card in cards:
+            for item in items:
                 try:
-                    title = card.find("h3")
-                    title_text = title.text.strip() if title else "Untitled"
+                    title_text = item.get("title", "Untitled")
+                    seo_url = item.get("seo_url", "")
+                    card_link = f"https://unstop.com/competitions/{seo_url}" if seo_url else "https://unstop.com"
                     
-                    link = card.find("a", href=True)
-                    card_link = link["href"] if link else "https://unstop.com"
+                    org = item.get("organisation", {})
+                    company_text = org.get("name") if isinstance(org, dict) else "Unstop"
                     
-                    company = card.find("span", class_="company-name")
-                    company_text = company.text.strip() if company else "Unstop"
+                    deadline_text = item.get("end_date", "")
                     
-                    deadline = card.find("span", class_="deadline")
-                    deadline_text = deadline.text.strip() if deadline else ""
-                    
-                    category = card.find("span", class_="category")
-                    category_text = category.text.strip() if category else "Opportunity"
+                    tags = item.get("tags", [])
+                    category_text = ", ".join([t.get("name", "") for t in tags if isinstance(t, dict)]) if tags else ""
+                    type_str = item.get("type", "competition")
                     
                     opp = {
                         "opportunity_id": f"unstop_{uuid.uuid4().hex[:8]}",
                         "title": title_text,
-                        "description": "",  # Require click to get full description
-                        "domain": extract_domains(category_text),
-                        "type": classify_opportunity_type(category_text),
+                        "description": item.get("details", "Click to view full details on Unstop.")[:500],
+                        "domain": extract_domains(category_text + " " + title_text),
+                        "type": classify_opportunity_type(type_str + " " + category_text),
                         "company": company_text,
-                        "location": "India",
+                        "location": "Online / India",
                         "source": "unstop",
-                        "source_id": f"unstop_html_{uuid.uuid4().hex[:8]}",
+                        "source_id": f"unstop_{item.get('id')}",
                         "source_url": card_link,
                         "deadline": deadline_text,
                         "verified": True,
@@ -127,13 +122,13 @@ async def scrape_unstop_html() -> List[Dict]:
                     }
                     opportunities.append(opp)
                 except Exception as e:
-                    logger.error(f"Error parsing card: {e}")
+                    logger.error(f"Error parsing item: {e}")
                     continue
         
-        logger.info(f"Scraped {len(opportunities)} opportunities from Unstop HTML")
+        logger.info(f"Scraped {len(opportunities)} opportunities from Unstop API")
         
     except Exception as e:
-        logger.error(f"Unstop HTML scraper error: {e}")
+        logger.error(f"Unstop API scraper error: {e}")
     
     return opportunities
 
