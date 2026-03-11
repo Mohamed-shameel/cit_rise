@@ -31,6 +31,11 @@ class IdeaReview(BaseModel):
 class CommentAdd(BaseModel):
     comment: str
 
+class StudentIdeaSubmit(BaseModel):
+    title: str
+    description: str
+    student_id: str = "student_demo"
+
 # Helper: Check if user is admin (simplified for demo)
 def get_current_user(user_id: str = None):
     # In real app, extract from JWT token
@@ -49,6 +54,67 @@ def gen_idea_id():
     return str(uuid.uuid4())
 
 # ============== STUDENT ENDPOINTS ==============
+
+@router.post("/submit")
+async def student_submit_idea(data: StudentIdeaSubmit):
+    """
+    Student submits an idea in-app. AI instantly scores it.
+    """
+    if data.student_id not in users_db:
+        raise HTTPException(status_code=404, detail="Student not found")
+    if len(data.title.strip()) < 5:
+        raise HTTPException(status_code=400, detail="Title must be at least 5 characters")
+    if len(data.description.strip()) < 20:
+        raise HTTPException(status_code=400, detail="Description must be at least 20 characters")
+
+    try:
+        ai_result = await analyze_idea(data.title, data.description)
+    except Exception as e:
+        ai_result = {
+            "category": "General Innovation",
+            "feasibility_score": 55,
+            "mentor_suggestions": list(mentors_db.keys())[:2],
+            "feasibility_reasoning": "Could not analyze — manual review needed.",
+            "implementation_complexity": "Medium",
+            "potential_impact": "Medium",
+            "suggested_first_steps": ["Research similar projects", "Draft an MVP", "Find a mentor"],
+        }
+
+    idea_id = gen_idea_id()
+    idea = {
+        "id": idea_id,
+        "student_id": data.student_id,
+        "title": data.title.strip()[:100],
+        "description": data.description.strip(),
+        "category": ai_result.get("category", "General Innovation"),
+        "feasibility_score": ai_result.get("feasibility_score", 55),
+        "mentor_suggestions": ai_result.get("mentor_suggestions", []),
+        "status": "pending",
+        "submitted_at": datetime.utcnow().isoformat(),
+        "reviewed_at": None,
+        "qr_code_url": "",
+        "rise_score_impact": 0,
+        "ai_analysis": ai_result,
+    }
+
+    ideas_db[idea_id] = idea
+    idea_comments_db[idea_id] = []
+
+    student = users_db[data.student_id]
+    student["xp"] = student.get("xp", 0) + 10
+
+    idea_submissions_log["total"] = len(ideas_db)
+    cat = idea["category"]
+    idea_submissions_log["categories"][cat] = idea_submissions_log["categories"].get(cat, 0) + 1
+
+    return {
+        "success": True,
+        "idea_id": idea_id,
+        "idea": idea,
+        "ai_analysis": ai_result,
+        "message": "Idea submitted and AI-analyzed! Admin will review shortly.",
+    }
+
 
 @router.get("/my-ideas")
 def get_my_ideas(user_id: str = "student_demo"):

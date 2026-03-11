@@ -65,6 +65,54 @@ async def list_opps(
     
     return {"total": len(opps), "opportunities": opps}
 
+@router.get("/matched/{student_id}")
+async def get_matched_opportunities(student_id: str):
+    """Return opportunities sorted by AI match score for a student"""
+    student = users_db.get(student_id)
+    if not student:
+        raise HTTPException(404, "Student not found")
+
+    dept = student.get("department", "")
+    skills = set(s.lower() for s in student.get("skills", []))
+    interests = set(i.lower() for i in student.get("interests", []))
+
+    matched = []
+    for opp in opportunities_db.values():
+        score = 0
+        reasons = []
+
+        domains = opp.get("domain", [])
+        if isinstance(domains, str):
+            domains = [domains]
+        domains_lower = set(d.lower() for d in domains)
+
+        if dept in opp.get("department_fit", []):
+            score += 35
+            reasons.append("Matches your department")
+
+        if domains_lower & interests:
+            score += 25
+            reasons.append("Aligns with your interests")
+
+        for skill in skills:
+            if any(skill in d or d in skill for d in domains_lower):
+                score += 20
+                reasons.append("Skill alignment detected")
+                break
+
+        ai_score = opp.get("ai_analysis", {}).get("relevance_score", 5)
+        score += int(ai_score * 2)
+
+        matched.append({
+            **opp,
+            "match_score": min(score, 100),
+            "match_reasons": reasons[:2] if reasons else ["General opportunity"],
+        })
+
+    matched.sort(key=lambda x: x["match_score"], reverse=True)
+    return {"student_id": student_id, "total": len(matched), "opportunities": matched}
+
+
 @router.get("/user/{user_id}")
 async def get_user_opportunities(user_id: str):
     """Get opportunities a user has registered for"""

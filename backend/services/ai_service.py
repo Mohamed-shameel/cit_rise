@@ -62,11 +62,12 @@ Resume:
 Return JSON:
 {{"name":"string","department":"CSE/ECE/MECH/IT/EEE/CSE AI","year":2,"skills":["list"],"interests":["list"],
 "strengths":["3 phrases"],"profile_summary":"2-3 sentences","innovation_potential":"High/Medium/Low",
-"suggested_roles":["3 roles"]}}"""
+"suggested_roles":["3 roles"],"resume_suggestions":["specific improvement tip 1","specific improvement tip 2","specific improvement tip 3"]}}"""
     raw = await call_llama(prompt, sys)
     return parse(raw, {"name":"Student","department":"CSE","year":2,"skills":["Python"],"interests":["Technology"],
         "strengths":["Analytical","Fast learner","Team player"],"profile_summary":"Motivated student with good technical skills.",
-        "innovation_potential":"Medium","suggested_roles":["Software Engineer","ML Engineer","Web Developer"]})
+        "innovation_potential":"Medium","suggested_roles":["Software Engineer","ML Engineer","Web Developer"],
+        "resume_suggestions":["Add measurable impact metrics to each achievement","Include links to GitHub projects or live demos","Add a clear technical skills section with proficiency levels"]})
 
 
 async def calculate_rise_score(student: dict, achievements: list) -> dict:
@@ -101,20 +102,70 @@ JSON:
 "recommended_projects":["3 ideas"],"salary_outlook":{{"fresher":"X LPA","3_years":"Y LPA"}},
 "motivational_note":"1 sentence"}}"""
     raw = await call_llama(prompt, sys)
-    return parse(raw, {"primary_career_path":"Software Engineer","current_level":"Intermediate","time_to_job_ready":"6 months",
+    roadmap = parse(raw, {"primary_career_path":"Software Engineer","current_level":"Intermediate","time_to_job_ready":"6 months",
         "immediate_actions":[{"action":"Build portfolio project","why":"Employers need proof","timeline":"4 weeks"}],
         "skill_gaps":[{"skill":"System Design","priority":"High","resource":"Grokking System Design"}],
         "milestones":[{"month":3,"goal":"Complete 2 projects","outcome":"Portfolio ready"}],
         "recommended_projects":["AI chatbot","REST API service","ML pipeline"],"salary_outlook":{"fresher":"6-10 LPA","3_years":"15-25 LPA"},
         "motivational_note":"Your technical foundation is strong — execution is all that's left."})
 
+    # Normalize recommended_projects — AI sometimes returns [{idea:"..."}, ...] instead of ["..."]
+    def _to_str(v):
+        if isinstance(v, str): return v
+        if isinstance(v, dict): return next(iter(v.values()), "") if v else ""
+        return str(v)
 
-async def chat_with_ai(question: str, student: dict) -> str:
-    sys = f"""You are CIT RISE AI Assistant — helpful mentor for college students.
+    roadmap["recommended_projects"] = [_to_str(p) for p in roadmap.get("recommended_projects", [])]
+
+    # Normalize string fields in milestones
+    for m in roadmap.get("milestones", []):
+        m["goal"] = _to_str(m.get("goal", ""))
+        m["outcome"] = _to_str(m.get("outcome", ""))
+
+    # Normalize string fields in immediate_actions
+    for a in roadmap.get("immediate_actions", []):
+        a["action"] = _to_str(a.get("action", ""))
+        a["why"] = _to_str(a.get("why", ""))
+        a["timeline"] = _to_str(a.get("timeline", ""))
+
+    # Normalize skill_gaps
+    for g in roadmap.get("skill_gaps", []):
+        g["skill"] = _to_str(g.get("skill", ""))
+        g["resource"] = _to_str(g.get("resource", ""))
+
+    # Normalize top-level string fields
+    for field in ("primary_career_path", "current_level", "time_to_job_ready", "motivational_note"):
+        if field in roadmap:
+            roadmap[field] = _to_str(roadmap[field])
+
+    return roadmap
+
+
+async def chat_with_ai(question: str, student: dict, current_page: str = "") -> str:
+    page_ctx = f"\nUser is currently viewing the '{current_page}' page." if current_page else ""
+    sys = f"""You are CIT RISE AI Assistant — helpful mentor for college students.{page_ctx}
 Student: {student.get('name')} | {student.get('department')} | RISE Score: {student.get('rise_score',0)}
 Skills: {', '.join(student.get('skills',[]))}
 Be concise, practical, motivating. Under 150 words."""
     return await call_llama(question, sys)
+
+
+async def generate_daily_challenge(student: dict) -> dict:
+    sys = "You are CIT RISE Daily Challenge AI. Create one focused multiple-choice question. JSON only."
+    skills = ", ".join(student.get("skills", [])[:3]) or "Python"
+    dept = student.get("department", "CSE")
+    prompt = f"""Create a practical multiple-choice question for a {dept} student with skills: {skills}.
+The question should test career-relevant knowledge (DSA, system design, CS fundamentals, or domain skills).
+
+Return JSON only:
+{{"question":"string","options":["A: option","B: option","C: option","D: option"],"correct":"A","explanation":"1-2 sentences explaining why the answer is correct"}}"""
+    raw = await call_llama(prompt, sys)
+    return parse(raw, {
+        "question": "Which time complexity describes a binary search algorithm?",
+        "options": ["A: O(n)", "B: O(log n)", "C: O(n²)", "D: O(1)"],
+        "correct": "B",
+        "explanation": "Binary search halves the search space each iteration, giving O(log n) time complexity."
+    })
 
 
 async def generate_admin_insights(users_db: dict, achievements_db: dict) -> dict:

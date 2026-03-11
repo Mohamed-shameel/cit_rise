@@ -108,6 +108,18 @@ const styles = `
 const Spinner = () => <div className="spinner" />;
 const Tag = ({label}) => <span className="tag">{label}</span>;
 
+// Safely convert any AI-returned value to a renderable string
+const safeStr = v => {
+  if (v === null || v === undefined) return '';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number') return String(v);
+  if (typeof v === 'object') {
+    const vals = Object.values(v);
+    return vals.length ? String(vals[0]) : '';
+  }
+  return String(v);
+};
+
 const badgeColor = b => ({Pioneer:"badge-purple",Innovator:"badge-blue",Explorer:"badge-amber",Starter:"badge-green"}[b]||"badge-blue");
 
 async function api(path, opts={}) {
@@ -392,16 +404,18 @@ const StudentDashboard = ({user, setPage}) => {
         </div>
       )}
 
+      <DailyChallengeWidget userId={user.id}/>
+
       {student.career_roadmap&&(
         <div className="ai-card fade-up-3" style={{marginBottom:20}}>
           <div className="ai-label"><div className="ai-dot"/>Saved Career Roadmap</div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <div>
-              <div style={{fontWeight:700,fontSize:16}}>{student.career_roadmap.primary_career_path}</div>
+              <div style={{fontWeight:700,fontSize:16}}>{safeStr(student.career_roadmap.primary_career_path)}</div>
               <div style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--text2)",marginTop:4}}>
-                {student.career_roadmap.current_level} · {student.career_roadmap.time_to_job_ready} to job-ready
+                {safeStr(student.career_roadmap.current_level)} · {safeStr(student.career_roadmap.time_to_job_ready)} to job-ready
               </div>
-              {student.career_roadmap.motivational_note&&<div style={{fontSize:13,color:"var(--text2)",fontStyle:"italic",marginTop:8}}>"{student.career_roadmap.motivational_note}"</div>}
+              {student.career_roadmap.motivational_note&&<div style={{fontSize:13,color:"var(--text2)",fontStyle:"italic",marginTop:8}}>"{safeStr(student.career_roadmap.motivational_note)}"</div>}
             </div>
             <button className="btn btn-secondary btn-sm" onClick={()=>setPage("roadmap")}>View Full →</button>
           </div>
@@ -713,15 +727,15 @@ const CareerRoadmapPage = ({user}) => {
       {roadmap&&(
         <div className="fade-up">
           <div className="grid-3" style={{marginBottom:20}}>
-            <div className="stat-card"><div className="stat-value stat-accent" style={{fontSize:18}}>{roadmap.primary_career_path}</div><div className="stat-label">Career Path</div></div>
-            <div className="stat-card"><div className="stat-value stat-purple" style={{fontSize:22}}>{roadmap.current_level}</div><div className="stat-label">Current Level</div></div>
-            <div className="stat-card"><div className="stat-value stat-amber" style={{fontSize:22}}>{roadmap.time_to_job_ready}</div><div className="stat-label">To Job-Ready</div></div>
+            <div className="stat-card"><div className="stat-value stat-accent" style={{fontSize:18}}>{safeStr(roadmap.primary_career_path)}</div><div className="stat-label">Career Path</div></div>
+            <div className="stat-card"><div className="stat-value stat-purple" style={{fontSize:22}}>{safeStr(roadmap.current_level)}</div><div className="stat-label">Current Level</div></div>
+            <div className="stat-card"><div className="stat-value stat-amber" style={{fontSize:22}}>{safeStr(roadmap.time_to_job_ready)}</div><div className="stat-label">To Job-Ready</div></div>
           </div>
 
           {roadmap.motivational_note&&(
             <div className="ai-card" style={{marginBottom:20}}>
               <div className="ai-label"><div className="ai-dot"/>AI Note</div>
-              <div style={{fontSize:15,fontStyle:"italic",color:"var(--text2)"}}>"{roadmap.motivational_note}"</div>
+              <div style={{fontSize:15,fontStyle:"italic",color:"var(--text2)"}}>"{safeStr(roadmap.motivational_note)}"</div>
             </div>
           )}
 
@@ -730,8 +744,8 @@ const CareerRoadmapPage = ({user}) => {
               <div className="card-title">Immediate Actions</div>
               {roadmap.immediate_actions?.map((a,i)=>(
                 <div key={i} style={{marginBottom:14,paddingBottom:14,borderBottom:"1px solid var(--border)"}}>
-                  <div style={{fontWeight:600,marginBottom:4}}>{a.action}</div>
-                  <div style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--text3)"}}>{a.timeline} · {a.why}</div>
+                  <div style={{fontWeight:600,marginBottom:4}}>{safeStr(a.action)}</div>
+                  <div style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--text3)"}}>{safeStr(a.timeline)} · {safeStr(a.why)}</div>
                 </div>
               ))}
             </div>
@@ -740,10 +754,10 @@ const CareerRoadmapPage = ({user}) => {
               {roadmap.skill_gaps?.map((g,i)=>(
                 <div key={i} style={{marginBottom:12}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                    <span style={{fontWeight:600,fontSize:13}}>{g.skill}</span>
-                    <span className={`badge ${g.priority==="High"?"badge-red":"badge-amber"}`}>{g.priority}</span>
+                    <span style={{fontWeight:600,fontSize:13}}>{safeStr(g.skill)}</span>
+                    <span className={`badge ${safeStr(g.priority)==="High"?"badge-red":"badge-amber"}`}>{safeStr(g.priority)}</span>
                   </div>
-                  <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text3)"}}>{g.resource}</div>
+                  <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text3)"}}>{safeStr(g.resource)}</div>
                 </div>
               ))}
             </div>
@@ -754,7 +768,7 @@ const CareerRoadmapPage = ({user}) => {
             {roadmap.milestones?.map((m,i)=>(
               <div key={i} className="milestone">
                 <div className="milestone-month">Mo. {m.month}</div>
-                <div><div className="milestone-goal">{m.goal}</div><div className="milestone-outcome">{m.outcome}</div></div>
+                <div><div className="milestone-goal">{safeStr(m.goal)}</div><div className="milestone-outcome">{safeStr(m.outcome)}</div></div>
               </div>
             ))}
           </div>
@@ -764,7 +778,7 @@ const CareerRoadmapPage = ({user}) => {
               <div className="card-title">Recommended Projects</div>
               {roadmap.recommended_projects?.map((p,i)=>(
                 <div key={i} style={{fontFamily:"var(--mono)",fontSize:13,color:"var(--text2)",marginBottom:8,display:"flex",gap:8}}>
-                  <span style={{color:"var(--accent)"}}>▸</span>{p}
+                  <span style={{color:"var(--accent)"}}>▸</span>{safeStr(p)}
                 </div>
               ))}
             </div>
@@ -772,11 +786,11 @@ const CareerRoadmapPage = ({user}) => {
               <div className="card-title">Salary Outlook</div>
               <div style={{display:"flex",gap:20}}>
                 <div className="stat-card" style={{flex:1}}>
-                  <div className="stat-value stat-green" style={{fontSize:20}}>{roadmap.salary_outlook?.fresher}</div>
+                  <div className="stat-value stat-green" style={{fontSize:20}}>{safeStr(roadmap.salary_outlook?.fresher)}</div>
                   <div className="stat-label">Fresher</div>
                 </div>
                 <div className="stat-card" style={{flex:1}}>
-                  <div className="stat-value stat-accent" style={{fontSize:20}}>{roadmap.salary_outlook?.["3_years"]}</div>
+                  <div className="stat-value stat-accent" style={{fontSize:20}}>{safeStr(roadmap.salary_outlook?.["3_years"])}</div>
                   <div className="stat-label">3 Years</div>
                 </div>
               </div>
@@ -943,6 +957,33 @@ const MentorsPage = ({user}) => {
   const [loading,setLoading] = useState(true);
   const [showAdd,setShowAdd] = useState(false);
   const [form,setForm] = useState({name:"",company:"",domain:"",skills:"",bio:"",linkedin:""});
+  const [chatMentor,setChatMentor] = useState(null);
+  const [messages,setMessages] = useState([]);
+  const [msgText,setMsgText] = useState("");
+  const [msgLoading,setMsgLoading] = useState(false);
+  const chatEndRef = useRef(null);
+
+  const openChat = async (mentor) => {
+    setChatMentor(mentor);
+    try {
+      const d = await api(`/chat/conversation/${user.id}/${mentor.mentor_id}`);
+      setMessages(d.messages||[]);
+    } catch { setMessages([]); }
+  };
+
+  useEffect(()=>{ chatEndRef.current?.scrollIntoView({behavior:"smooth"}); },[messages]);
+
+  const sendMessage = async () => {
+    const text = msgText.trim();
+    if(!text||!chatMentor) return;
+    setMsgText(""); setMsgLoading(true);
+    try {
+      await api("/chat/message",{method:"POST",body:JSON.stringify({student_id:user.id,mentor_id:chatMentor.mentor_id,text,sender:"student"})});
+      const d = await api(`/chat/conversation/${user.id}/${chatMentor.mentor_id}`);
+      setMessages(d.messages||[]);
+    } catch {}
+    setMsgLoading(false);
+  };
 
   useEffect(()=>{
     const load=async()=>{
@@ -1009,10 +1050,44 @@ const MentorsPage = ({user}) => {
               {m.bio&&<div style={{fontSize:13,color:"var(--text2)",lineHeight:1.5,marginBottom:10}}>{m.bio}</div>}
               <div style={{marginBottom:8}}>{m.skills?.map(s=><Tag key={s} label={s}/>)}</div>
               {m.match_score>0&&<div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--success)",marginBottom:8}}>✓ {m.match_score}% skill match</div>}
-              {m.linkedin&&<a href={`https://${m.linkedin}`} target="_blank" rel="noreferrer" style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--accent)",textDecoration:"none"}}>LinkedIn →</a>}
+              <div style={{display:"flex",gap:8,alignItems:"center",marginTop:8}}>
+                {m.linkedin&&<a href={`https://${m.linkedin}`} target="_blank" rel="noreferrer" style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--accent)",textDecoration:"none"}}>LinkedIn →</a>}
+                {user.role==="student"&&<button className="btn btn-secondary btn-sm" style={{marginLeft:"auto"}} onClick={()=>openChat(m)}>💬 Message</button>}
+              </div>
             </div>
           ))}
           {list.length===0&&<div style={{gridColumn:"1/-1",textAlign:"center",padding:48,color:"var(--text3)",fontFamily:"var(--mono)"}}>{tab==="recommended"?"Complete your profile first.":"No mentors yet."}</div>}
+        </div>
+      )}
+
+      {chatMentor&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:16,width:"100%",maxWidth:520,height:520,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            <div style={{padding:"16px 20px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:12}}>
+              <div className="avatar" style={{flexShrink:0}}>{chatMentor.name?.[0]}</div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700}}>{chatMentor.name}</div>
+                <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text3)"}}>{chatMentor.company} · {chatMentor.domain}</div>
+              </div>
+              <button className="btn btn-secondary btn-sm" onClick={()=>setChatMentor(null)}>✕ Close</button>
+            </div>
+            <div style={{flex:1,overflowY:"auto",padding:16,display:"flex",flexDirection:"column",gap:10}}>
+              {messages.length===0&&<div style={{textAlign:"center",color:"var(--text3)",fontFamily:"var(--mono)",fontSize:12,marginTop:40}}>No messages yet. Say hello!</div>}
+              {messages.map((m,i)=>(
+                <div key={i} style={{display:"flex",justifyContent:m.sender==="student"?"flex-end":"flex-start"}}>
+                  <div style={{maxWidth:"75%",padding:"10px 14px",borderRadius:m.sender==="student"?"14px 14px 4px 14px":"14px 14px 14px 4px",background:m.sender==="student"?"var(--accent)":"var(--surface2)",color:m.sender==="student"?"#000":"var(--text)",fontSize:13}}>
+                    {m.text}
+                    <div style={{fontSize:10,fontFamily:"var(--mono)",opacity:.6,marginTop:4,textAlign:"right"}}>{m.timestamp?.slice(11,16)}</div>
+                  </div>
+                </div>
+              ))}
+              <div ref={chatEndRef}/>
+            </div>
+            <div style={{padding:"12px 16px",borderTop:"1px solid var(--border)",display:"flex",gap:8}}>
+              <input className="form-input" style={{flex:1}} placeholder="Type a message..." value={msgText} onChange={e=>setMsgText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&sendMessage()}/>
+              <button className="btn btn-primary" onClick={sendMessage} disabled={msgLoading||!msgText.trim()}>{msgLoading?<Spinner/>:"Send →"}</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -1160,6 +1235,154 @@ const ChatPage = ({user}) => {
           {loading?<Spinner/>:"Send →"}
         </button>
       </div>
+    </div>
+  );
+};
+
+// ── NOTIFICATION BELL ─────────────────────────────────────────────────────────
+const NotificationBell = ({userId, onNavigate}) => {
+  const [notifs, setNotifs] = useState([]);
+  const [open, setOpen] = useState(false);
+  useEffect(()=>{
+    if(!userId) return;
+    api(`/notifications/${userId}`).then(d=>setNotifs(d.notifications||[])).catch(()=>{});
+  },[userId]);
+  return (
+    <div style={{position:"relative"}}>
+      <div onClick={()=>setOpen(!open)} style={{cursor:"pointer",position:"relative",width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:8,background:"var(--surface2)",border:"1px solid var(--border2)"}}>
+        <span style={{fontSize:14}}>🔔</span>
+        {notifs.length>0&&<div style={{position:"absolute",top:-4,right:-4,background:"var(--danger)",color:"#fff",borderRadius:"50%",width:16,height:16,fontSize:9,display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"var(--mono)",fontWeight:700}}>{notifs.length}</div>}
+      </div>
+      {open&&(
+        <div style={{position:"absolute",top:40,left:0,width:280,background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:12,zIndex:200,boxShadow:"0 8px 32px rgba(0,0,0,.5)"}}>
+          <div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--text3)",marginBottom:8,letterSpacing:".1em"}}>NOTIFICATIONS</div>
+          {notifs.length===0?<div style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--text3)",padding:"8px 0"}}>All caught up!</div>:notifs.map(n=>(
+            <div key={n.id} onClick={()=>{onNavigate(n.page);setOpen(false);}} style={{display:"flex",gap:10,padding:"8px 0",borderBottom:"1px solid var(--border)",cursor:"pointer"}}>
+              <span style={{fontSize:18}}>{n.icon}</span>
+              <div style={{flex:1}}>
+                <div style={{fontSize:12,fontWeight:600,marginBottom:2}}>{n.title}</div>
+                <div style={{fontSize:11,fontFamily:"var(--mono)",color:"var(--text3)",lineHeight:1.4}}>{n.message}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── DAILY CHALLENGE WIDGET ─────────────────────────────────────────────────────
+const DailyChallengeWidget = ({userId}) => {
+  const [challenge, setChallenge] = useState(null);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [fetched, setFetched] = useState(false);
+
+  const fetchChallenge = async () => {
+    setLoading(true);
+    try { const d=await api(`/ai/daily-challenge/${userId}`); setChallenge(d); } catch{}
+    setLoading(false); setFetched(true);
+  };
+
+  const answer = async (letter) => {
+    if(result||challenge?.answered) return;
+    try { const d=await api(`/ai/daily-challenge/${userId}/answer`,{method:"POST",body:JSON.stringify({answer:letter})}); setResult(d); } catch{}
+  };
+
+  if(!fetched) return (
+    <div className="card fade-up-3" style={{marginBottom:20,display:"flex",alignItems:"center",gap:14}}>
+      <span style={{fontSize:24}}>⚡</span>
+      <div style={{flex:1}}>
+        <div style={{fontWeight:700,fontSize:14,marginBottom:2}}>Daily Challenge Ready</div>
+        <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text3)"}}>Answer correctly to earn +5 XP</div>
+      </div>
+      <button className="btn btn-primary btn-sm" onClick={fetchChallenge} disabled={loading}>{loading?<Spinner/>:"Start →"}</button>
+    </div>
+  );
+
+  if(!challenge) return null;
+
+  return (
+    <div className="ai-card fade-up-3" style={{marginBottom:20}}>
+      <div className="ai-label"><div className="ai-dot"/>Daily Challenge · +5 XP</div>
+      <div style={{fontWeight:600,fontSize:14,marginBottom:12,lineHeight:1.5}}>{challenge.question}</div>
+      {challenge.options?.map((opt,i)=>{
+        const letter = String.fromCharCode(65+i);
+        let bg="var(--surface2)",border="var(--border2)",color="var(--text)";
+        if(result){
+          if(letter===result.correct_answer){bg="rgba(16,185,129,.12)";border="var(--success)";color="var(--success)";}
+          else if(letter===result.your_answer&&!result.correct){bg="rgba(239,68,68,.1)";border="var(--danger)";color="var(--danger)";}
+        }
+        return (
+          <button key={i} disabled={!!(result||challenge.answered)} onClick={()=>answer(letter)}
+            style={{display:"block",width:"100%",textAlign:"left",padding:"8px 12px",marginBottom:6,background:bg,border:`1px solid ${border}`,borderRadius:8,color,fontFamily:"var(--font)",cursor:(result||challenge.answered)?"default":"pointer",fontSize:13,transition:"all .15s"}}>
+            <strong style={{fontFamily:"var(--mono)",marginRight:8}}>{letter}.</strong>{opt}
+          </button>
+        );
+      })}
+      {result&&(
+        <div style={{marginTop:8}}>
+          <div className={`alert ${result.correct?"alert-success":"alert-error"}`}>{result.correct?`✓ Correct! +${result.xp_earned} XP earned`:`✗ Incorrect. +${result.xp_earned} XP for trying`}</div>
+          <div style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--text2)",marginTop:6}}>{result.explanation}</div>
+        </div>
+      )}
+      {challenge.answered&&!result&&<div className="alert alert-info">Already answered today! Come back tomorrow for a new challenge.</div>}
+    </div>
+  );
+};
+
+// ── LEADERBOARD PAGE ──────────────────────────────────────────────────────────
+const LeaderboardPage = ({user}) => {
+  const [data, setData] = useState(null);
+  const [dept, setDept] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(()=>{
+    setLoading(true);
+    api(`/admin/leaderboard${dept?`?department=${encodeURIComponent(dept)}`:""}`)
+      .then(d=>setData(d)).catch(()=>{}).finally(()=>setLoading(false));
+  },[dept]);
+
+  const rankIcon = r => r===1?"🥇":r===2?"🥈":r===3?"🥉":`#${r}`;
+  const rankColor = r => r===1?"#ffd700":r===2?"#c0c0c0":r===3?"#cd7f32":"var(--text3)";
+
+  return (
+    <div className="page">
+      <div className="page-header fade-up">
+        <div className="page-title">🏆 Leaderboard</div>
+        <div className="page-subtitle">Top innovators ranked by RISE Score</div>
+      </div>
+      {data?.departments?.length>0&&(
+        <div className="segment fade-up-2">
+          <button className={`seg-btn ${dept===""?"active":""}`} onClick={()=>setDept("")}>All Depts ({data.total_students})</button>
+          {data.departments.map(d=>(
+            <button key={d} className={`seg-btn ${dept===d?"active":""}`} onClick={()=>setDept(d)}>{d}</button>
+          ))}
+        </div>
+      )}
+      {loading?<Spinner/>:(
+        <div className="card fade-up-3">
+          <table className="table">
+            <thead><tr><th>Rank</th><th>Name</th><th>Dept</th><th>RISE Score</th><th>Badge</th><th>Trend</th></tr></thead>
+            <tbody>{data?.leaderboard?.map(s=>(
+              <tr key={s.user_id} style={s.user_id===user.id?{background:"rgba(0,229,255,.05)"}:{}}>
+                <td style={{fontFamily:"var(--mono)",fontWeight:800,fontSize:s.rank<=3?20:14,color:rankColor(s.rank)}}>{rankIcon(s.rank)}</td>
+                <td>
+                  <span style={{fontWeight:600}}>{s.name}</span>
+                  {s.user_id===user.id&&<span className="badge badge-blue" style={{marginLeft:8}}>You</span>}
+                </td>
+                <td><span className="badge badge-blue">{s.department}</span></td>
+                <td style={{fontFamily:"var(--mono)",color:"var(--accent)",fontWeight:700,fontSize:16}}>{s.rise_score}</td>
+                <td><span className={`badge ${badgeColor(s.badge)}`}>🏅 {s.badge}</span></td>
+                <td style={{fontFamily:"var(--mono)",fontSize:12}}>
+                  {s.delta!==null?<span style={{color:s.delta>=0?"var(--success)":"var(--danger)"}}>{s.delta>=0?"↑":"↓"}{Math.abs(s.delta)}</span>:"—"}
+                </td>
+              </tr>
+            ))}</tbody>
+          </table>
+          {(!data?.leaderboard?.length)&&<div style={{textAlign:"center",padding:40,color:"var(--text3)",fontFamily:"var(--mono)"}}>No students ranked yet.</div>}
+        </div>
+      )}
     </div>
   );
 };
@@ -1339,49 +1562,152 @@ const AdminDashboard = () => {
 
 // ── SUBMIT IDEA PAGE ────────────────────────────────────────────────────────
 const SubmitIdeaPage = ({user}) => {
+  const [tab, setTab] = useState("submit");
+  const [form, setForm] = useState({title:"", description:""});
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [err, setErr] = useState("");
+  const [myIdeas, setMyIdeas] = useState([]);
+  const [ideasLoading, setIdeasLoading] = useState(false);
+
+  const loadMyIdeas = async () => {
+    if(!user.id) return;
+    setIdeasLoading(true);
+    try { const d=await api(`/ideas/my-ideas?user_id=${user.id}`); setMyIdeas(d.ideas||[]); } catch{}
+    setIdeasLoading(false);
+  };
+
+  useEffect(()=>{ if(tab==="my-ideas") loadMyIdeas(); },[tab]);
+
+  const submit = async () => {
+    if(!form.title||form.title.length<5){setErr("Title must be at least 5 characters.");return;}
+    if(!form.description||form.description.length<20){setErr("Description must be at least 20 characters.");return;}
+    setLoading(true);setErr("");setResult(null);
+    try{
+      const d=await api("/ideas/submit",{method:"POST",body:JSON.stringify({...form,student_id:user.id||"student_demo"})});
+      setResult(d); setForm({title:"",description:""});
+    }catch(e){setErr(e.message||"Submission failed.");}
+    setLoading(false);
+  };
+
+  const statusColor = s=>({selected:"badge-green",rejected:"badge-red",reviewed:"badge-blue",pending:"badge-amber"}[s]||"badge-amber");
+
   return (
     <div className="page">
       <div className="page-header fade-up">
-        <div className="page-title">Submit an Idea</div>
-        <div className="page-subtitle">Innovation Portal — Have a startup or research idea?</div>
+        <div className="page-title">Innovation Ideas</div>
+        <div className="page-subtitle">Submit your startup or research idea — AI instant analysis</div>
       </div>
-      <div className="grid-2 fade-up-2">
-        <div className="card" style={{textAlign:"center", padding:"40px 20px"}}>
-          <div style={{fontSize:48, marginBottom:16}}>📱</div>
-          <div style={{fontWeight:700, fontSize:18, marginBottom:8}}>Scan to Submit</div>
-          <img src="/CITBIF_QR.jpeg" alt="QR Code to Form" style={{width:"100%", maxWidth:240, margin:"0 auto 20px", borderRadius:12, border:"1px solid var(--border)"}}/>
-          <div style={{fontFamily:"var(--mono)", fontSize:13, color:"var(--text3)", marginBottom:20}}>
-            Uses Google Forms for seamless data collection.
-          </div>
-          <a href="https://scnv.io/dx3g?qr=1" target="_blank" rel="noreferrer" className="btn btn-primary" style={{textDecoration:"none"}}>
-            Open Web Form →
-          </a>
-        </div>
-        <div className="card">
-          <div className="card-title">What happens next?</div>
-          <div style={{display:"flex",gap:12,marginBottom:16}}>
-            <div style={{width:28,height:28,borderRadius:14,background:"var(--surface2)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"var(--text2)",flexShrink:0}}>1</div>
-            <div>
-              <div style={{fontWeight:600,marginBottom:2}}>Submit Form</div>
-              <div style={{fontSize:13,color:"var(--text3)"}}>Fill out the Google Form with your idea details.</div>
-            </div>
-          </div>
-          <div style={{display:"flex",gap:12,marginBottom:16}}>
-            <div style={{width:28,height:28,borderRadius:14,background:"var(--surface2)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"var(--text2)",flexShrink:0}}>2</div>
-            <div>
-              <div style={{fontWeight:600,marginBottom:2}}>AI Analysis</div>
-              <div style={{fontSize:13,color:"var(--text3)"}}>Llama automatically scores feasibility and suggests mentors.</div>
-            </div>
-          </div>
-          <div style={{display:"flex",gap:12,marginBottom:16}}>
-            <div style={{width:28,height:28,borderRadius:14,background:"var(--surface2)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"var(--accent)",flexShrink:0}}>3</div>
-            <div>
-              <div style={{fontWeight:600,marginBottom:2}}>Admin Review</div>
-              <div style={{fontSize:13,color:"var(--text3)"}}>Admins review and assign RISE score boosts (+20-40 pts).</div>
-            </div>
-          </div>
-        </div>
+      <div className="segment fade-up-2">
+        <button className={`seg-btn ${tab==="submit"?"active":""}`} onClick={()=>setTab("submit")}>Submit Idea</button>
+        <button className={`seg-btn ${tab==="qr"?"active":""}`} onClick={()=>setTab("qr")}>Google Form</button>
+        <button className={`seg-btn ${tab==="my-ideas"?"active":""}`} onClick={()=>setTab("my-ideas")}>My Ideas</button>
       </div>
+
+      {tab==="submit"&&(
+        <div className="fade-up">
+          {result?(
+            <div>
+              <div className="alert alert-success">✓ Idea submitted! AI has analyzed it.</div>
+              <div className="grid-2" style={{marginBottom:16}}>
+                <div className="ai-card">
+                  <div className="ai-label"><div className="ai-dot"/>AI Analysis</div>
+                  <div style={{fontWeight:700,fontSize:16,marginBottom:8}}>{result.idea?.category}</div>
+                  <div style={{display:"flex",gap:12,marginBottom:10}}>
+                    <div className="stat-card" style={{flex:1,padding:12}}>
+                      <div className="stat-value stat-accent" style={{fontSize:28}}>{result.ai_analysis?.feasibility_score}</div>
+                      <div className="stat-label">Feasibility /100</div>
+                    </div>
+                    <div className="stat-card" style={{flex:1,padding:12}}>
+                      <div className="stat-value stat-purple" style={{fontSize:18}}>{result.ai_analysis?.potential_impact}</div>
+                      <div className="stat-label">Potential Impact</div>
+                    </div>
+                  </div>
+                  <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.6}}>{result.ai_analysis?.feasibility_reasoning}</div>
+                </div>
+                <div className="card">
+                  <div className="card-title">Suggested First Steps</div>
+                  {result.ai_analysis?.suggested_first_steps?.map((s,i)=>(
+                    <div key={i} style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--text2)",marginBottom:8,display:"flex",gap:8}}>
+                      <span style={{color:"var(--accent)"}}>{i+1}.</span>{s}
+                    </div>
+                  ))}
+                  {result.ai_analysis?.mentor_suggestions?.length>0&&<>
+                    <div className="card-title" style={{marginTop:12}}>Suggested Mentors</div>
+                    {result.ai_analysis.mentor_suggestions.map(m=><Tag key={m} label={m}/>)}
+                  </>}
+                </div>
+              </div>
+              <button className="btn btn-secondary" onClick={()=>setResult(null)}>Submit Another →</button>
+            </div>
+          ):(
+            <div className="card">
+              <div className="card-title">New Idea Submission</div>
+              {err&&<div className="alert alert-error">{err}</div>}
+              <div className="form-group">
+                <label className="form-label">Idea Title *</label>
+                <input className="form-input" value={form.title} onChange={e=>setForm({...form,title:e.target.value})} placeholder="e.g. AI-powered attendance system using facial recognition"/>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Description * (min 20 chars)</label>
+                <textarea className="form-input" style={{minHeight:120}} value={form.description} onChange={e=>setForm({...form,description:e.target.value})} placeholder="Describe your idea — the problem it solves, how it works, and who benefits..."/>
+              </div>
+              <button className="btn btn-primary" onClick={submit} disabled={loading}>
+                {loading?<><Spinner/> AI is analyzing...</>:"⚡ Submit & Analyze with AI"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab==="qr"&&(
+        <div className="grid-2 fade-up">
+          <div className="card" style={{textAlign:"center",padding:"40px 20px"}}>
+            <div style={{fontSize:48,marginBottom:16}}>📱</div>
+            <div style={{fontWeight:700,fontSize:18,marginBottom:8}}>Scan to Submit via Google Form</div>
+            <img src="/CITBIF_QR.jpeg" alt="QR Code to Form" style={{width:"100%",maxWidth:240,margin:"0 auto 20px",borderRadius:12,border:"1px solid var(--border)"}}/>
+            <div style={{fontFamily:"var(--mono)",fontSize:13,color:"var(--text3)",marginBottom:20}}>Google Forms for seamless data collection.</div>
+            <a href="https://scnv.io/dx3g?qr=1" target="_blank" rel="noreferrer" className="btn btn-primary" style={{textDecoration:"none"}}>Open Web Form →</a>
+          </div>
+          <div className="card">
+            <div className="card-title">What happens next?</div>
+            {[["Submit Form","Fill out the Google Form with your idea details."],["AI Analysis","Gemini automatically scores feasibility and suggests mentors."],["Admin Review","Admins review and assign RISE score boosts (+20-40 pts)."]].map(([t,d],i)=>(
+              <div key={i} style={{display:"flex",gap:12,marginBottom:16}}>
+                <div style={{width:28,height:28,borderRadius:14,background:"var(--surface2)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:i===2?"var(--accent)":"var(--text2)",flexShrink:0}}>{i+1}</div>
+                <div><div style={{fontWeight:600,marginBottom:2}}>{t}</div><div style={{fontSize:13,color:"var(--text3)"}}>{d}</div></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab==="my-ideas"&&(
+        <div className="fade-up">
+          {ideasLoading?<Spinner/>:myIdeas.length===0?(
+            <div className="card" style={{textAlign:"center",padding:"48px 24px",color:"var(--text3)"}}>
+              <div style={{fontSize:36,marginBottom:12}}>💡</div>
+              <div style={{fontFamily:"var(--mono)",fontSize:13}}>No ideas submitted yet. Start with the Submit tab!</div>
+            </div>
+          ):(
+            <div className="grid-2">
+              {myIdeas.map(idea=>(
+                <div className="card" key={idea.id}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                    <div style={{fontWeight:700,fontSize:15,flex:1,marginRight:8}}>{idea.title}</div>
+                    <span className={`badge ${statusColor(idea.status)}`}>{idea.status.toUpperCase()}</span>
+                  </div>
+                  <span className="badge badge-purple" style={{marginBottom:8,display:"inline-flex"}}>{idea.category}</span>
+                  <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.5,marginBottom:10}}>{idea.description.slice(0,120)}{idea.description.length>120?"...":""}</div>
+                  <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text3)",marginBottom:6}}>
+                    Feasibility: <span style={{color:"var(--accent)"}}>{idea.feasibility_score}/100</span> · {idea.submitted_at?.slice(0,10)}
+                  </div>
+                  {idea.rise_score_impact>0&&<div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--success)"}}>+{idea.rise_score_impact} RISE points earned</div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
@@ -1492,7 +1818,8 @@ const STUDENT_NAV = [
   {id:"careernav",label:"CareerNav AI",icon:"🔬"},
   {id:"mentors",label:"Mentors",icon:"🤝"},
   {id:"opportunities",label:"Opportunities",icon:"🎯"},
-  {id:"submit-idea",label:"Submit Idea",icon:"💡"},
+  {id:"submit-idea",label:"Ideas",icon:"💡"},
+  {id:"leaderboard",label:"Leaderboard",icon:"🏆"},
   {id:"chat",label:"AI Assistant",icon:"💬"},
 ];
 const ADMIN_NAV = [
@@ -1532,6 +1859,7 @@ export default function App() {
         case "opportunities":return user.role === "admin" ? <AdminOpportunitiesPanel user={user}/> : <OpportunitiesPage user={user}/>;
         case "submit-idea":  return <SubmitIdeaPage user={user}/>;
         case "admin-ideas":  return <AdminIdeasPage user={user}/>;
+        case "leaderboard":  return <LeaderboardPage user={user}/>;
         case "chat":         return <ChatPage user={user}/>;
         case "admin":        return <AdminDashboard/>;
         default:             return <StudentDashboard user={user} setPage={setPage}/>;
@@ -1542,9 +1870,12 @@ export default function App() {
     <><style>{styles}</style>
     <div className="app">
       <div className="sidebar">
-        <div className="logo">
-          <div className="logo-mark">CIT RISE</div>
-          <div className="logo-sub">Innovation Platform</div>
+        <div className="logo" style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div>
+            <div className="logo-mark">CIT RISE</div>
+            <div className="logo-sub">Innovation Platform</div>
+          </div>
+          {user.role==="student"&&<NotificationBell userId={user.id} onNavigate={setPage}/>}
         </div>
         <div className="nav-section">Menu</div>
         {nav.map(n=>(

@@ -47,22 +47,36 @@ async def update_user(user_id: str, update: UserUpdate):
     for k,v in update.model_dump(exclude_none=True).items(): u[k] = v
     return {"message":"Updated","user":u}
 
+@router.get("/{user_id}/xp")
+async def get_xp(user_id: str):
+    u = users_db.get(user_id)
+    if not u: raise HTTPException(404, "User not found")
+    xp = u.get("xp", 0)
+    level = 1 + xp // 100
+    labels = {1:"Newcomer", 2:"Explorer", 3:"Innovator", 4:"Pioneer", 5:"Legend"}
+    label = labels.get(min(level, 5), "Legend")
+    return {"user_id": user_id, "xp": xp, "level": min(level, 5), "level_label": label,
+            "xp_to_next": (min(level, 5) * 100) - xp if level < 5 else 0}
+
+
 @router.post("/ai-profile-from-resume")
 async def ai_profile_from_resume(
     resume_file: UploadFile = File(...),
     github_username: Optional[str] = Form(None),
     email: Optional[str] = Form(None)
 ):
-    import pdfplumber
+    import pypdfium2 as pdfium
     if not (resume_file.filename or "").lower().endswith(".pdf"):
         raise HTTPException(400, "Only PDF files supported.")
     data = await resume_file.read()
     text = ""
     try:
-        with pdfplumber.open(io.BytesIO(data)) as pdf:
-            for page in pdf.pages:
-                t = page.extract_text()
-                if t: text += t + "\n"
+        pdf = pdfium.PdfDocument(io.BytesIO(data))
+        for i in range(len(pdf)):
+            page = pdf[i]
+            textpage = page.get_textpage()
+            t = textpage.get_text_range()
+            if t: text += t + "\n"
     except Exception as e:
         raise HTTPException(400, f"Could not read PDF: {e}")
     if not text.strip():

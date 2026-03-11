@@ -30,6 +30,10 @@ async def add_achievement(a: AchCreate):
     student["rise_score_breakdown"] = score.get("breakdown",{})
     student["rise_score_meta"] = {"percentile":score.get("percentile"),"reasoning":score.get("score_reasoning"),
         "badge":score.get("badge"),"improvement_areas":score.get("improvement_areas",[])}
+    hist = student.setdefault("score_history", [])
+    hist.append({"score": student["rise_score"], "date": datetime.utcnow().strftime("%Y-%m-%d")})
+    student["score_history"] = hist[-30:]
+    student["xp"] = student.get("xp", 0) + 10
     return {"message":"Achievement added, score recalculated","achievement":rec,"updated_rise_score":score}
 
 @router.get("/{student_id}")

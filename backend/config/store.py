@@ -15,6 +15,12 @@ ideas_db: dict = {}  # key: idea_id, value: {id, student_id, title, description,
 idea_comments_db: dict = {}  # key: idea_id, value: [{admin_id, comment, timestamp}, ...]
 idea_submissions_log: dict = {"total": 0, "categories": {}}  # Analytics
 
+# Mentor chat messages
+messages_db: dict = {}  # key: "{student_id}__{mentor_id}", value: [{sender, text, timestamp}]
+
+# Daily challenge state
+daily_challenges_db: dict = {}  # key: student_id, value: {question, options, correct, explanation, date, answered, answer_given}
+
 def seed():
     mentors_db.update({
         "m1": {"mentor_id":"m1","name":"Dr. Priya Ramesh","company":"Google DeepMind","domain":"Machine Learning",
