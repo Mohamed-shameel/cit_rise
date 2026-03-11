@@ -1,25 +1,46 @@
 import os, json
 import httpx
 from typing import Optional
+from dotenv import load_dotenv
+from pathlib import Path
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-# allow overriding the model name via env variable in case Google changes names
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-GEMINI_URL = f"https://generativelanguage.googleapis.com/v1/models/{GEMINI_MODEL}:generateContent"
+env_path = Path(__file__).resolve().parent.parent / '.env'
+load_dotenv(dotenv_path=env_path)
+
+API_KEY = os.getenv("OPENROUTER_API_KEY")
+URL = "https://openrouter.ai/api/v1/chat/completions"
+MODEL = "meta-llama/llama-3-8b-instruct"
+GITHUB_API_BASE = "https://api.github.com"
 
 
-async def call_gemini(prompt: str, system: str = "") -> str:
-    if not GEMINI_API_KEY:
+async def call_llama(prompt: str, system: str = "") -> str:
+    if not API_KEY:
         return '{"error":"no_key"}'
-    full = f"{system}\n\n{prompt}" if system else prompt
-    payload = {"contents":[{"parts":[{"text":full}]}],"generationConfig":{"temperature":0.7,"maxOutputTokens":1500}}
+    
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": prompt})
+    
+    payload = {
+        "model": MODEL,
+        "messages": messages,
+        "temperature": 0.7
+    }
+    
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
     async with httpx.AsyncClient(timeout=30.0) as c:
-        r = await c.post(f"{GEMINI_URL}?key={GEMINI_API_KEY}", json=payload)
+        r = await c.post(URL, json=payload, headers=headers)
         d = r.json()
+        
     try:
-        return d["candidates"][0]["content"]["parts"][0]["text"]
+        return d["choices"][0]["message"]["content"]
     except Exception:
-        return json.dumps({"error": str(d.get("error","unknown"))})
+        return json.dumps({"error": str(d.get("error", "unknown"))})
 
 
 def parse(raw: str, fallback: dict) -> dict:
@@ -42,7 +63,7 @@ Return JSON:
 {{"name":"string","department":"CSE/ECE/MECH/IT/EEE/CSE AI","year":2,"skills":["list"],"interests":["list"],
 "strengths":["3 phrases"],"profile_summary":"2-3 sentences","innovation_potential":"High/Medium/Low",
 "suggested_roles":["3 roles"]}}"""
-    raw = await call_gemini(prompt, sys)
+    raw = await call_llama(prompt, sys)
     return parse(raw, {"name":"Student","department":"CSE","year":2,"skills":["Python"],"interests":["Technology"],
         "strengths":["Analytical","Fast learner","Team player"],"profile_summary":"Motivated student with good technical skills.",
         "innovation_potential":"Medium","suggested_roles":["Software Engineer","ML Engineer","Web Developer"]})
@@ -60,7 +81,7 @@ Achievements:\n{ach}
 JSON:
 {{"total_score":200,"breakdown":{{"achievement_quality":80,"skill_depth":60,"research_impact":30,"innovation_mindset":20,"leadership_potential":10}},
 "percentile":"top X%","score_reasoning":"2-3 sentences","improvement_areas":["2 things"],"badge":"Pioneer/Innovator/Explorer/Starter"}}"""
-    raw = await call_gemini(prompt, sys)
+    raw = await call_llama(prompt, sys)
     return parse(raw, {"total_score":180,"breakdown":{"achievement_quality":70,"skill_depth":50,"research_impact":30,"innovation_mindset":20,"leadership_potential":10},
         "percentile":"top 25%","score_reasoning":"Good foundation, keep building.","improvement_areas":["Publish research","Lead a project"],"badge":"Explorer"})
 
@@ -79,7 +100,7 @@ JSON:
 "milestones":[{{"month":1,"goal":"string","outcome":"string"}}],
 "recommended_projects":["3 ideas"],"salary_outlook":{{"fresher":"X LPA","3_years":"Y LPA"}},
 "motivational_note":"1 sentence"}}"""
-    raw = await call_gemini(prompt, sys)
+    raw = await call_llama(prompt, sys)
     return parse(raw, {"primary_career_path":"Software Engineer","current_level":"Intermediate","time_to_job_ready":"6 months",
         "immediate_actions":[{"action":"Build portfolio project","why":"Employers need proof","timeline":"4 weeks"}],
         "skill_gaps":[{"skill":"System Design","priority":"High","resource":"Grokking System Design"}],
@@ -93,7 +114,7 @@ async def chat_with_ai(question: str, student: dict) -> str:
 Student: {student.get('name')} | {student.get('department')} | RISE Score: {student.get('rise_score',0)}
 Skills: {', '.join(student.get('skills',[]))}
 Be concise, practical, motivating. Under 150 words."""
-    return await call_gemini(question, sys)
+    return await call_llama(question, sys)
 
 
 async def generate_admin_insights(users_db: dict, achievements_db: dict) -> dict:
@@ -111,7 +132,7 @@ JSON:
 "key_insights":[{{"insight":"string","impact":"High/Medium/Low","action":"string"}}],
 "talent_segments":{{"research_potential":30,"startup_potential":20,"placement_ready":50}},
 "recommendations":["3 items"],"naac_nirf_highlight":"1 sentence","risk_areas":["list"]}}"""
-    raw = await call_gemini(prompt, sys)
+    raw = await call_llama(prompt, sys)
     return parse(raw, {"executive_summary":"Innovation ecosystem growing steadily.","innovation_health_score":70,
         "key_insights":[{"insight":"CSE AI leads innovation","impact":"High","action":"Replicate model in other depts"}],
         "talent_segments":{"research_potential":30,"startup_potential":20,"placement_ready":50},
@@ -139,7 +160,7 @@ async def analyze_github(username: str) -> dict:
 JSON: {{"developer_level":"Beginner/Intermediate/Advanced","primary_domain":"string","detected_skills":["list"],
 "project_highlights":["2-3 sentences"],"open_source_score":75,"career_readiness":"Internship Ready/Junior Ready/Mid-level Ready",
 "github_summary":"2 sentences","strengths":["list"],"suggestions":["2 items"]}}"""
-    r = await call_gemini(prompt, sys)
+    r = await call_llama(prompt, sys)
     ai = parse(r, {"developer_level":"Intermediate","primary_domain":langs[0] if langs else "General",
         "detected_skills":langs,"project_highlights":[repos[0]["name"] if repos else "No repos"],
         "open_source_score":min(stars*5,100),"career_readiness":"Internship Ready",
@@ -168,7 +189,7 @@ JSON: {{"dsa_level":"Beginner/Intermediate/Advanced","strong_areas":["list"],"we
 "interview_readiness":"Not Ready/Getting There/Interview Ready/FAANG Ready",
 "study_plan":[{{"week":1,"focus":"topic","target":"X problems","reason":"why"}}],
 "next_milestone":"string","company_targets":["list"],"lc_summary":"2 sentences"}}"""
-    r = await call_gemini(prompt, sys)
+    r = await call_llama(prompt, sys)
     ai = parse(r, {"dsa_level":"Intermediate" if total>100 else "Beginner","strong_areas":["Arrays","Strings"],
         "weak_areas":["DP","Graphs"],"interview_readiness":"Getting There" if total>50 else "Not Ready",
         "study_plan":[{"week":1,"focus":"Two Pointers","target":"15 problems","reason":"High interview frequency"}],
@@ -208,7 +229,7 @@ Return JSON only:
     "suggested_first_steps": ["step 1", "step 2", "step 3"]
 }}"""
     
-    raw = await call_gemini(prompt, sys)
+    raw = await call_llama(prompt, sys)
     result = parse(raw, {
         "category": "Innovation",
         "feasibility_score": 60,

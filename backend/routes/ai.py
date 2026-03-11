@@ -19,7 +19,7 @@ async def career_roadmap(req: Req):
     achs = [a for a in achievements_db.values() if a["student_id"]==req.student_id]
     roadmap = await generate_career_roadmap(s, achs)
     s["career_roadmap"] = roadmap
-    return {"student_id":req.student_id,"roadmap":roadmap,"generated_by":"Gemini AI"}
+    return {"student_id":req.student_id,"roadmap":roadmap,"generated_by":"Llama AI"}
 
 @router.post("/recalculate-score")
 async def recalculate_score(req: Req):

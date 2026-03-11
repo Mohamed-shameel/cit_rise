@@ -288,7 +288,7 @@ const RegisterPage = ({onComplete, onBack}) => {
 
         {step===2&&(<div style={{textAlign:"center",padding:"40px 0"}}>
           <Spinner/><div style={{fontFamily:"var(--mono)",fontSize:13,color:"var(--text2)",marginTop:16}}>
-            {file?"Gemini AI is reading your resume...":"Creating account..."}
+            {file?"Llama AI is reading your resume...":"Creating account..."}
           </div>
         </div>)}
 
@@ -452,7 +452,7 @@ const AIProfilePage = ({user}) => {
     <div className="page">
       <div className="page-header fade-up">
         <div className="page-title">AI Profile Generator</div>
-        <div className="page-subtitle">Upload resume PDF → Gemini AI builds your CIT RISE profile</div>
+        <div className="page-subtitle">Upload resume PDF → Llama AI builds your CIT RISE profile</div>
       </div>
       {!result?(
         <div className="grid-2 fade-up-2">
@@ -481,7 +481,7 @@ const AIProfilePage = ({user}) => {
             </div>
             {err&&<div className="alert alert-error">{err}</div>}
             <button className="btn btn-primary" style={{width:"100%",justifyContent:"center"}} onClick={generate} disabled={loading||!file}>
-              {loading?<><Spinner/> Gemini AI is reading your resume...</>:"⚡ Generate AI Profile"}
+              {loading?<><Spinner/> Llama AI is reading your resume...</>:"⚡ Generate AI Profile"}
             </button>
             <div style={{marginTop:10,fontSize:11,fontFamily:"var(--mono)",color:"var(--text3)",textAlign:"center"}}>
               PDF must have selectable text (not a scanned image)
@@ -489,7 +489,7 @@ const AIProfilePage = ({user}) => {
           </div>
           <div className="card" style={{borderStyle:"dashed",display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",gap:12,color:"var(--text3)"}}>
             <div style={{fontSize:48}}>🤖</div>
-            <div style={{fontWeight:700,color:"var(--text2)",marginBottom:4,textAlign:"center"}}>Gemini AI extracts</div>
+            <div style={{fontWeight:700,color:"var(--text2)",marginBottom:4,textAlign:"center"}}>Llama AI extracts</div>
             {["Name, department, year","Skills & tech stack","Innovation potential","Suggested career roles","AI profile summary","Initial RISE score"].map(i=>(
               <div key={i} style={{fontFamily:"var(--mono)",fontSize:12,display:"flex",gap:8}}>
                 <span style={{color:"var(--accent)"}}>→</span>{i}
@@ -695,7 +695,7 @@ const CareerRoadmapPage = ({user}) => {
       <div className="page-header fade-up" style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
         <div>
           <div className="page-title">Career Roadmap</div>
-          <div className="page-subtitle">AI-generated personalized roadmap — powered by CareerNav × Gemini</div>
+          <div className="page-subtitle">AI-generated personalized roadmap — powered by CareerNav × Llama</div>
         </div>
         <button className="btn btn-primary" onClick={generate} disabled={loading}>
           {loading?<><Spinner/>Generating...</>:roadmap?"🔄 Regenerate":"⚡ Generate Roadmap"}
@@ -841,7 +841,7 @@ const CareerNavPage = ({user}) => {
               </div>
               <div className="grid-2" style={{marginBottom:16}}>
                 <div className="ai-card">
-                  <div className="ai-label"><div className="ai-dot"/>Gemini Analysis</div>
+                  <div className="ai-label"><div className="ai-dot"/>Llama Analysis</div>
                   <div style={{fontWeight:700,fontSize:16,marginBottom:6}}>{ghResult.ai_analysis?.developer_level} Developer</div>
                   <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.6,marginBottom:10}}>{ghResult.ai_analysis?.github_summary}</div>
                   <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
@@ -903,7 +903,7 @@ const CareerNavPage = ({user}) => {
               </div>
               <div className="grid-2" style={{marginBottom:16}}>
                 <div className="ai-card">
-                  <div className="ai-label"><div className="ai-dot"/>Gemini Assessment</div>
+                  <div className="ai-label"><div className="ai-dot"/>Llama Assessment</div>
                   <div style={{fontWeight:700,fontSize:16,marginBottom:4}}>{lcResult.ai_analysis?.dsa_level} · {lcResult.ai_analysis?.interview_readiness}</div>
                   <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.6,marginBottom:10}}>{lcResult.ai_analysis?.lc_summary}</div>
                   <div style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--accent)",marginBottom:8}}>→ {lcResult.ai_analysis?.next_milestone}</div>
@@ -1133,7 +1133,7 @@ const ChatPage = ({user}) => {
     <div className="page" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 32px)",paddingBottom:0}}>
       <div className="page-header fade-up" style={{flexShrink:0}}>
         <div className="page-title">AI Assistant</div>
-        <div className="page-subtitle">Powered by Gemini — knows your profile and score</div>
+        <div className="page-subtitle">Powered by Llama — knows your profile and score</div>
       </div>
       <div style={{flex:1,overflowY:"auto",marginBottom:12}}>
         {messages.map((m,i)=>(
@@ -1276,7 +1276,7 @@ const AdminDashboard = () => {
             <div style={{textAlign:"center",padding:60}}>
               <div style={{fontSize:48,marginBottom:16}}>🧠</div>
               <div style={{fontWeight:700,fontSize:18,marginBottom:8}}>AI Talent Intelligence</div>
-              <div style={{color:"var(--text3)",fontFamily:"var(--mono)",fontSize:13,marginBottom:24}}>Gemini analyses all student data and generates strategic insights for NAAC/NIRF and management.</div>
+              <div style={{color:"var(--text3)",fontFamily:"var(--mono)",fontSize:13,marginBottom:24}}>Llama analyses all student data and generates strategic insights for NAAC/NIRF and management.</div>
               <button className="btn btn-primary" onClick={genInsights} disabled={iLoad}>
                 {iLoad?<><Spinner/>Generating...</>:"Generate AI Insights"}
               </button>
@@ -1370,7 +1370,7 @@ const SubmitIdeaPage = ({user}) => {
             <div style={{width:28,height:28,borderRadius:14,background:"var(--surface2)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,color:"var(--text2)",flexShrink:0}}>2</div>
             <div>
               <div style={{fontWeight:600,marginBottom:2}}>AI Analysis</div>
-              <div style={{fontSize:13,color:"var(--text3)"}}>Gemini automatically scores feasibility and suggests mentors.</div>
+              <div style={{fontSize:13,color:"var(--text3)"}}>Llama automatically scores feasibility and suggests mentors.</div>
             </div>
           </div>
           <div style={{display:"flex",gap:12,marginBottom:16}}>

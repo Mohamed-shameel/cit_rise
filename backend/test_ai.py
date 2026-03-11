@@ -1,11 +1,11 @@
 import os, asyncio
-from services.ai_service import call_gemini
+from services.ai_service import call_llama
 
 # make sure model env is set
-os.environ.setdefault('GEMINI_MODEL','gemini-2.5-flash')
+os.environ.setdefault('MODEL','meta-llama/llama-3-8b-instruct')
 
 async def main():
-    result = await call_gemini('Say something interesting about AI.', '')
+    result = await call_llama('Say something interesting about chennai institute of technology.')
     print(result)
 
 if __name__ == '__main__':

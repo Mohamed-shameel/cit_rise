@@ -184,12 +184,12 @@ def extract_domains(category: str) -> List[str]:
 
 async def enrich_opportunity_with_ai(opportunity: Dict) -> Dict:
     """
-    Use Gemini to analyze and enrich opportunity data
+    Use Llama to analyze and enrich opportunity data
     - Infer department fit
     - Calculate relevance score
     - Generate summary
     """
-    from services.ai_service import call_gemini
+    from services.ai_service import call_llama
     import json
     
     try:
@@ -211,7 +211,7 @@ Return JSON with:
 
 Only return valid JSON, no markdown."""
         
-        response = await call_gemini(prompt, "You are an opportunity analyst for a college platform.")
+        response = await call_llama(prompt, "You are an opportunity analyst for a college platform.")
         
         try:
             analysis = json.loads(response)
