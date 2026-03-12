@@ -137,6 +137,24 @@ Return JSON:
 # RISE SCORE ENGINE
 # ---------------------------------------
 
+async def regenerate_student_profile(student: dict) -> dict:
+    sys = "Regenerate AI profile summary for CIT RISE student based on their current profile. JSON only, no markdown."
+    prompt = f"""Regenerate the profile summary and suggested learning roles for this student based on their data.
+
+Student: {student.get('name')} | {student.get('department')} | Year {student.get('year')}
+Skills: {', '.join(student.get('skills', []))}
+Interests: {', '.join(student.get('interests', []))}
+Achievements: {', '.join([a.get('title', '') for a in student.get('achievements', [])]) if student.get('achievements') else 'None'}
+
+Return JSON:
+{{"profile_summary":"2-3 sentences summarizing their potential and skills","suggested_roles":["3 roles"]}}"""
+    raw = await call_llama(prompt, sys)
+    return parse(raw, {
+        "profile_summary":"Driven student actively building technical skills.",
+        "suggested_roles":["Software Engineer", "Developer"]
+    })
+
+
 async def calculate_rise_score(student: dict, achievements: list) -> dict:
 
     sys = "You are CIT RISE Score AI evaluating student innovation potential."

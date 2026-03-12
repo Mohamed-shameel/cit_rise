@@ -14,6 +14,10 @@ class AchCreate(BaseModel):
     student_id: str; title: str; type: str
     description: Optional[str]=""; date: Optional[str]=None; certificate_url: Optional[str]=None
 
+class AchUpdate(BaseModel):
+    title: Optional[str]=None; type: Optional[str]=None
+    description: Optional[str]=None; date: Optional[str]=None
+
 @router.post("/add")
 async def add_achievement(a: AchCreate):
     if a.student_id not in users_db: raise HTTPException(404,"Student not found")
@@ -41,6 +45,17 @@ async def get_achievements(student_id: str):
     if student_id not in users_db: raise HTTPException(404,"Student not found")
     achs = [a for a in achievements_db.values() if a["student_id"]==student_id]
     return {"student_id":student_id,"total":len(achs),"achievements":achs}
+
+@router.put("/{achievement_id}")
+async def update_achievement(achievement_id: str, update: AchUpdate):
+    a = achievements_db.get(achievement_id)
+    if not a: raise HTTPException(404,"Achievement not found")
+    if a.get("verified"): raise HTTPException(400,"Cannot edit verified achievements")
+    
+    for k, v in update.model_dump(exclude_none=True).items():
+        a[k] = v
+        
+    return {"message": "Achievement updated", "achievement": a}
 
 @router.put("/{achievement_id}/verify")
 async def verify(achievement_id: str):

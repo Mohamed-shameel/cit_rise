@@ -5,7 +5,7 @@ from datetime import datetime
 import uuid, io
 
 from config.store import users_db
-from services.ai_service import generate_student_profile, calculate_rise_score
+from services.ai_service import generate_student_profile, calculate_rise_score, regenerate_student_profile
 
 router = APIRouter()
 
@@ -46,6 +46,46 @@ async def update_user(user_id: str, update: UserUpdate):
     if not u: raise HTTPException(404, "User not found")
     for k,v in update.model_dump(exclude_none=True).items(): u[k] = v
     return {"message":"Updated","user":u}
+
+@router.delete("/{student_id}")
+async def delete_user(student_id: str, admin_user_id: str = "admin"):
+    # Simplified admin check
+    if student_id not in users_db:
+        raise HTTPException(404, "Student not found")
+    del users_db[student_id]
+    return {"message": "Student deleted successfully"}
+
+class ScoreOverride(BaseModel):
+    rise_score: int
+
+@router.put("/admin/students/{student_id}/score")
+async def override_score(student_id: str, data: ScoreOverride):
+    if student_id not in users_db:
+        raise HTTPException(404, "Student not found")
+    if not (0 <= data.rise_score <= 500):
+        raise HTTPException(400, "Score must be between 0 and 500")
+    users_db[student_id]["rise_score"] = data.rise_score
+    return {"message": "Score updated successfully", "new_score": data.rise_score}
+
+class RegenerateReq(BaseModel):
+    student_id: str
+
+@router.post("/regenerate-profile")
+async def regenerate_profile(req: RegenerateReq):
+    student = users_db.get(req.student_id)
+    if not student:
+        raise HTTPException(404, "Student not found")
+    
+    new_data = await regenerate_student_profile(student)
+    
+    student["ai_profile_summary"] = new_data.get("profile_summary", student.get("ai_profile_summary"))
+    student["suggested_roles"] = new_data.get("suggested_roles", student.get("suggested_roles"))
+    
+    return {
+        "message": "Profile regenerated", 
+        "ai_profile_summary": student["ai_profile_summary"], 
+        "suggested_roles": student["suggested_roles"]
+    }
 
 @router.get("/{user_id}/xp")
 async def get_xp(user_id: str):

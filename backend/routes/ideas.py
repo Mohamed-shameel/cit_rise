@@ -23,6 +23,11 @@ class IdeaSubmit(BaseModel):
     description: str
     optional_files: str = None  # For future file upload
 
+class IdeaUpdate(BaseModel):
+    title: str = None
+    description: str = None
+    category: str = None
+
 class IdeaReview(BaseModel):
     status: str  # 'reviewed', 'selected', 'rejected'
     admin_comment: str = ""
@@ -255,6 +260,31 @@ async def import_ideas_csv(file: UploadFile = File(...), admin_user_id: str = "a
         idea_submissions_log["categories"][cat] = idea_submissions_log["categories"].get(cat, 0) + 1
 
     return {"success": True, "imported": imported_count, "message": f"Successfully imported and analyzed {imported_count} ideas"}
+
+@router.put("/{idea_id}")
+def update_idea(idea_id: str, data: IdeaUpdate):
+    idea = ideas_db.get(idea_id)
+    if not idea:
+        raise HTTPException(status_code=404, detail="Idea not found")
+    if idea.get("status") != "pending":
+        raise HTTPException(status_code=400, detail="Cannot edit scored/reviewed ideas")
+    
+    for k, v in data.model_dump(exclude_none=True).items():
+        idea[k] = v
+        
+    return {"message": "Idea updated successfully", "idea": idea}
+
+@router.delete("/{idea_id}")
+def delete_idea(idea_id: str, admin_user_id: str = "admin"):
+    _ = get_admin_user(admin_user_id)
+    if idea_id not in ideas_db:
+        raise HTTPException(status_code=404, detail="Idea not found")
+    
+    del ideas_db[idea_id]
+    if idea_id in idea_comments_db:
+        del idea_comments_db[idea_id]
+        
+    return {"message": "Idea deleted successfully"}
 
 @router.post("/{idea_id}/review")
 def admin_review_idea(idea_id: str, data: IdeaReview, admin_user_id: str = "admin"):
