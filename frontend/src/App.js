@@ -853,6 +853,8 @@ const CareerNavPage = ({user}) => {
                   <div className="stat-card" key={s.l}><div className={`stat-value ${s.c}`}>{s.v??0}</div><div className="stat-label">{s.l}</div></div>
                 ))}
               </div>
+
+              {/* ── Overview + Skills ── */}
               <div className="grid-2" style={{marginBottom:16}}>
                 <div className="ai-card">
                   <div className="ai-label"><div className="ai-dot"/>Llama Analysis</div>
@@ -861,30 +863,73 @@ const CareerNavPage = ({user}) => {
                   <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
                     <span className="badge badge-blue">{ghResult.ai_analysis?.primary_domain}</span>
                     <span className="badge badge-green">{ghResult.ai_analysis?.career_readiness}</span>
-                    <span className="badge badge-amber">OSS: {ghResult.ai_analysis?.open_source_score}/100</span>
                   </div>
                   {ghResult.profile_enriched&&<div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--success)"}}>✓ Skills merged into RISE profile · New score: {ghResult.new_rise_score}</div>}
                 </div>
                 <div className="card">
                   <div className="card-title">Detected Skills</div>
-                  <div style={{marginBottom:12}}>{ghResult.ai_analysis?.detected_skills?.map(s=><Tag key={s} label={s}/>)}</div>
-                  <div className="card-title" style={{marginTop:12}}>Suggestions</div>
-                  {ghResult.ai_analysis?.suggestions?.map((s,i)=>(
-                    <div key={i} style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--text2)",marginBottom:6,display:"flex",gap:8}}><span style={{color:"var(--accent)"}}>→</span>{s}</div>
-                  ))}
+                  <div>{ghResult.ai_analysis?.detected_skills?.map(s=><Tag key={s} label={s}/>)}</div>
                 </div>
               </div>
+
+              {/* ── Strengths & Weaknesses ── */}
+              <div className="grid-2" style={{marginBottom:16}}>
+                <div className="card">
+                  <div className="card-title" style={{color:"var(--success)"}}>✓ Portfolio Strengths</div>
+                  {ghResult.ai_analysis?.portfolio_strengths?.length>0
+                    ? ghResult.ai_analysis.portfolio_strengths.map((s,i)=>(
+                        <div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}>
+                          <span style={{color:"var(--success)",fontSize:16,lineHeight:1}}>✓</span>
+                          <span style={{fontSize:13,color:"var(--text2)",lineHeight:1.5}}>{s}</span>
+                        </div>
+                      ))
+                    : <div style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--text3)"}}>No strengths detected yet.</div>
+                  }
+                </div>
+                <div className="card">
+                  <div className="card-title" style={{color:"var(--danger)"}}>✗ Portfolio Weaknesses</div>
+                  {ghResult.ai_analysis?.portfolio_weaknesses?.length>0
+                    ? ghResult.ai_analysis.portfolio_weaknesses.map((w,i)=>(
+                        <div key={i} style={{display:"flex",gap:10,marginBottom:8,alignItems:"flex-start"}}>
+                          <span style={{color:"var(--danger)",fontSize:16,lineHeight:1}}>✗</span>
+                          <span style={{fontSize:13,color:"var(--text2)",lineHeight:1.5}}>{w}</span>
+                        </div>
+                      ))
+                    : <div style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--text3)"}}>No weaknesses detected.</div>
+                  }
+                </div>
+              </div>
+
+              {/* ── Improvement Recommendations ── */}
+              {ghResult.ai_analysis?.improvement_recommendations?.length>0&&(
+                <div className="card" style={{marginBottom:16}}>
+                  <div className="card-title">🚀 Improvement Recommendations</div>
+                  {ghResult.ai_analysis.improvement_recommendations.map((r,i)=>(
+                    <div key={i} style={{marginBottom:16,paddingBottom:16,borderBottom:i<ghResult.ai_analysis.improvement_recommendations.length-1?"1px solid var(--border)":"none"}}>
+                      <div style={{fontWeight:700,fontSize:14,marginBottom:4,color:"var(--accent)"}}>{r.action}</div>
+                      <div style={{fontSize:13,color:"var(--text2)",marginBottom:6,lineHeight:1.5}}>{r.reason}</div>
+                      {r.example_project&&(
+                        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                          <span style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--text3)",textTransform:"uppercase",letterSpacing:".05em"}}>Try:</span>
+                          <span style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--accent2)",fontStyle:"italic"}}>{r.example_project}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Top Repos ── */}
               {ghResult.raw?.top_repos?.length>0&&(
                 <div className="card">
                   <div className="card-title">Top Repositories</div>
                   <table className="table">
-                    <thead><tr><th>Repo</th><th>Language</th><th>Stars</th><th>Forks</th></tr></thead>
+                    <thead><tr><th>Repo</th><th>Language</th><th>Stars</th></tr></thead>
                     <tbody>{ghResult.raw.top_repos.slice(0,6).map(r=>(
                       <tr key={r.name}>
-                        <td><div style={{fontWeight:600}}>{r.name}</div>{r.description&&<div style={{fontSize:11,color:"var(--text3)",fontFamily:"var(--mono)",marginTop:2}}>{r.description.slice(0,60)}{r.description.length>60?"…":""}</div>}</td>
+                        <td><div style={{fontWeight:600}}>{r.name}</div>{r.description&&<div style={{fontSize:11,color:"var(--text3)",fontFamily:"var(--mono)",marginTop:2}}>{r.description.slice(0,70)}{r.description.length>70?"…":""}</div>}</td>
                         <td>{r.language?<span className="badge badge-blue">{r.language}</span>:"—"}</td>
                         <td style={{fontFamily:"var(--mono)",color:"var(--accent3)"}}>⭐ {r.stars}</td>
-                        <td style={{fontFamily:"var(--mono)",color:"var(--text3)"}}>🍴 {r.forks}</td>
                       </tr>
                     ))}</tbody>
                   </table>
@@ -909,34 +954,103 @@ const CareerNavPage = ({user}) => {
           </div>
           {lcResult&&(
             <div className="fade-up">
+              {/* ── Solved counts ── */}
               <div className="grid-4" style={{marginBottom:16}}>
                 {[{l:"Total",v:lcResult.raw?.solved?.total,c:"stat-accent"},{l:"Easy",v:lcResult.raw?.solved?.easy,c:"stat-green"},
                   {l:"Medium",v:lcResult.raw?.solved?.medium,c:"stat-amber"},{l:"Hard",v:lcResult.raw?.solved?.hard,c:"stat-purple"}].map(s=>(
                   <div className="stat-card" key={s.l}><div className={`stat-value ${s.c}`}>{s.v??0}</div><div className="stat-label">{s.l}</div></div>
                 ))}
               </div>
+
+              {/* ── Assessment + Strong/Weak ── */}
               <div className="grid-2" style={{marginBottom:16}}>
                 <div className="ai-card">
                   <div className="ai-label"><div className="ai-dot"/>Llama Assessment</div>
-                  <div style={{fontWeight:700,fontSize:16,marginBottom:4}}>{lcResult.ai_analysis?.dsa_level} · {lcResult.ai_analysis?.interview_readiness}</div>
+                  <div style={{fontWeight:700,fontSize:18,marginBottom:6}}>{lcResult.ai_analysis?.dsa_level}</div>
+                  {lcResult.ai_analysis?.level_explanation&&(
+                    <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.6,marginBottom:10,padding:"8px 12px",background:"rgba(0,229,255,.05)",borderRadius:8,borderLeft:"3px solid var(--accent)"}}>
+                      {lcResult.ai_analysis.level_explanation}
+                    </div>
+                  )}
+                  <div style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--accent3)",marginBottom:10}}>
+                    {lcResult.ai_analysis?.interview_readiness}
+                  </div>
                   <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.6,marginBottom:10}}>{lcResult.ai_analysis?.lc_summary}</div>
-                  <div style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--accent)",marginBottom:8}}>→ {lcResult.ai_analysis?.next_milestone}</div>
-                  <div>{lcResult.ai_analysis?.company_targets?.map(c=><span key={c} className="badge badge-purple" style={{margin:2}}>{c}</span>)}</div>
+                  <div style={{marginBottom:10}}>{lcResult.ai_analysis?.company_targets?.map(c=><span key={c} className="badge badge-purple" style={{margin:2}}>{c}</span>)}</div>
+                  {lcResult.ai_analysis?.milestone_goals?.length>0&&(
+                    <>
+                      <div style={{fontFamily:"var(--mono)",fontSize:10,color:"var(--text3)",textTransform:"uppercase",letterSpacing:".08em",marginBottom:6}}>Milestone Goals</div>
+                      {lcResult.ai_analysis.milestone_goals.map((g,i)=>(
+                        <div key={i} style={{display:"flex",gap:8,marginBottom:4,fontSize:12,color:"var(--accent)",fontFamily:"var(--mono)"}}>
+                          <span>→</span>{g}
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
                 <div className="card">
-                  <div className="card-title">Strong Areas</div>
-                  {lcResult.ai_analysis?.strong_areas?.map((a,i)=><div key={i} style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--text2)",marginBottom:6,display:"flex",gap:8}}><span style={{color:"var(--success)"}}>✓</span>{a}</div>)}
-                  <div className="card-title" style={{marginTop:12}}>Weak Areas</div>
-                  {lcResult.ai_analysis?.weak_areas?.map((a,i)=><div key={i} style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--text2)",marginBottom:6,display:"flex",gap:8}}><span style={{color:"var(--danger)"}}>!</span>{a}</div>)}
+                  <div className="card-title" style={{color:"var(--success)"}}>✓ Strong Areas</div>
+                  {lcResult.ai_analysis?.strong_areas?.map((a,i)=>(
+                    <div key={i} style={{display:"flex",gap:8,marginBottom:6,fontSize:13,color:"var(--text2)"}}>
+                      <span style={{color:"var(--success)"}}>✓</span>{a}
+                    </div>
+                  ))}
+                  <div className="card-title" style={{marginTop:14,color:"var(--danger)"}}>✗ Weak Areas</div>
+                  {lcResult.ai_analysis?.weak_areas?.map((a,i)=>(
+                    <div key={i} style={{display:"flex",gap:8,marginBottom:6,fontSize:13,color:"var(--text2)"}}>
+                      <span style={{color:"var(--danger)"}}>✗</span>{a}
+                    </div>
+                  ))}
                 </div>
               </div>
-              {lcResult.ai_analysis?.study_plan?.length>0&&(
+
+              {/* ── Concept Gaps ── */}
+              {lcResult.ai_analysis?.concept_gaps?.length>0&&(
+                <div className="card" style={{marginBottom:16,borderColor:"rgba(245,158,11,.25)",background:"rgba(245,158,11,.03)"}}>
+                  <div className="card-title" style={{color:"var(--accent3)"}}>🧠 Concept Gaps to Bridge</div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                    {lcResult.ai_analysis.concept_gaps.map((g,i)=>(
+                      <span key={i} style={{
+                        padding:"5px 12px",
+                        background:"rgba(245,158,11,.1)",
+                        border:"1px solid rgba(245,158,11,.25)",
+                        borderRadius:6,
+                        fontFamily:"var(--mono)",
+                        fontSize:12,
+                        color:"var(--accent3)"
+                      }}>{g}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Improvement Plan ── */}
+              {lcResult.ai_analysis?.improvement_plan?.length>0&&(
+                <div className="card" style={{marginBottom:16}}>
+                  <div className="card-title">📚 Improvement Plan</div>
+                  {lcResult.ai_analysis.improvement_plan.map((p,i)=>(
+                    <div key={i} style={{marginBottom:14,paddingBottom:14,borderBottom:i<lcResult.ai_analysis.improvement_plan.length-1?"1px solid var(--border)":"none"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                        <span style={{fontWeight:700,fontSize:14}}>{p.focus_topic}</span>
+                        <span className="badge badge-amber">{p.target_problems} problems</span>
+                      </div>
+                      <div style={{fontSize:13,color:"var(--text2)",fontFamily:"var(--mono)"}}>{p.reason}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ── Weekly Practice Plan ── */}
+              {lcResult.ai_analysis?.weekly_practice_plan?.length>0&&(
                 <div className="card">
-                  <div className="card-title">AI Study Plan</div>
-                  {lcResult.ai_analysis.study_plan.map((w,i)=>(
+                  <div className="card-title">📅 Weekly Practice Schedule</div>
+                  {lcResult.ai_analysis.weekly_practice_plan.map((w,i)=>(
                     <div key={i} className="milestone">
                       <div className="milestone-month">Wk {w.week}</div>
-                      <div><div className="milestone-goal">{w.focus} — {w.target}</div><div className="milestone-outcome">{w.reason}</div></div>
+                      <div>
+                        <div className="milestone-goal">{w.focus}</div>
+                        <div className="milestone-outcome">Target: {w.target}</div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1178,6 +1292,23 @@ const OpportunitiesPage = ({user}) => {
   );
 };
 
+// Lightweight renderer for AI ### markdown sections
+const renderAIText = (text) => {
+  if (!text) return null;
+  const lines = text.split('\n');
+  return lines.map((line, i) => {
+    if (line.startsWith('### ')) {
+      return (
+        <div key={i} style={{fontWeight:700,fontSize:13,color:"var(--accent)",marginTop:i>0?10:0,marginBottom:2,letterSpacing:".02em"}}>
+          {line.replace('### ','')}
+        </div>
+      );
+    }
+    if (line.trim()==='') return <div key={i} style={{height:4}}/>;  
+    return <div key={i} style={{fontSize:13,lineHeight:1.6,color:"inherit"}}>{line}</div>;
+  });
+};
+
 // ── CHAT PAGE ─────────────────────────────────────────────────────────────────
 const ChatPage = ({user}) => {
   const [messages,setMessages] = useState([{role:"ai",text:`Hey ${user.name?.split(" ")[0]||"there"} 👋 I'm CIT RISE AI — ask me anything about your score, career, skills, or what to do next.`}]);
@@ -1214,7 +1345,9 @@ const ChatPage = ({user}) => {
         {messages.map((m,i)=>(
           <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:12,animation:"fadeUp .3s ease both"}}>
             {m.role==="ai"&&<div style={{width:32,height:32,borderRadius:8,background:"linear-gradient(135deg,var(--accent2),var(--accent))",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,marginRight:10,flexShrink:0,marginTop:2}}>⚡</div>}
-            <div className={m.role==="user"?"chat-bubble-user":"chat-bubble-ai"}>{m.text}</div>
+            <div className={m.role==="user"?"chat-bubble-user":"chat-bubble-ai"}>
+              {m.role==="ai" ? renderAIText(m.text) : m.text}
+            </div>
           </div>
         ))}
         {loading&&<div style={{display:"flex",alignItems:"center",gap:10,color:"var(--text3)",fontFamily:"var(--mono)",fontSize:12,marginBottom:12}}>
