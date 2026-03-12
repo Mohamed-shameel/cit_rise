@@ -28,10 +28,15 @@ class ChallengeAnswerReq(BaseModel):
 async def career_roadmap(req: Req):
     s = users_db.get(req.student_id)
     if not s: raise HTTPException(404,"Student not found")
-    achs = [a for a in achievements_db.values() if a["student_id"]==req.student_id]
-    roadmap = await generate_career_roadmap(s, achs)
+
+    # Pull cached CareerNav analyses from student profile if they ran GitHub/LeetCode earlier
+    github   = s.get("github_analysis",   {})
+    leetcode = s.get("leetcode_analysis", {})
+
+    roadmap = await generate_career_roadmap(s, github, leetcode)
     s["career_roadmap"] = roadmap
-    return {"student_id":req.student_id,"roadmap":roadmap,"generated_by":"Llama AI"}
+    return {"student_id":req.student_id,"roadmap":roadmap,"generated_by":"Llama AI",
+            "context_used":{"github_domain":github.get("primary_domain","—"),"leetcode_level":leetcode.get("dsa_level","—")}}
 
 @router.post("/recalculate-score")
 async def recalculate_score(req: Req):

@@ -678,8 +678,9 @@ const RiseScorePage = ({user}) => {
 
 // ── CAREER ROADMAP PAGE ───────────────────────────────────────────────────────
 const CareerRoadmapPage = ({user}) => {
-  const [roadmap,setRoadmap] = useState(null);
-  const [loading,setLoading] = useState(false);
+  const [roadmap,setRoadmap]   = useState(null);
+  const [context,setContext]   = useState({});
+  const [loading,setLoading]   = useState(false);
   const [checking,setChecking] = useState(true);
 
   useEffect(()=>{
@@ -698,6 +699,7 @@ const CareerRoadmapPage = ({user}) => {
     try{
       const d=await api("/ai/career-roadmap",{method:"POST",body:JSON.stringify({student_id:user.id})});
       setRoadmap(d.roadmap);
+      if(d.context_used) setContext(d.context_used);
     }catch{}
     setLoading(false);
   };
@@ -716,11 +718,28 @@ const CareerRoadmapPage = ({user}) => {
         </button>
       </div>
 
+      {/* Context banner — shown after generation to indicate what data was used */}
+      {context.github_domain&&context.github_domain!=="—"&&(
+        <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>
+          <span style={{fontFamily:"var(--mono)",fontSize:11,padding:"4px 10px",background:"rgba(0,229,255,.08)",border:"1px solid rgba(0,229,255,.2)",borderRadius:6,color:"var(--accent)"}}
+          >GitHub: {context.github_domain}</span>
+          {context.leetcode_level&&context.leetcode_level!=="—"&&(
+            <span style={{fontFamily:"var(--mono)",fontSize:11,padding:"4px 10px",background:"rgba(168,85,247,.08)",border:"1px solid rgba(168,85,247,.25)",borderRadius:6,color:"var(--accent2)"}}
+            >LeetCode: {context.leetcode_level}</span>
+          )}
+          <span style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--success)"}}>✓ Roadmap personalised using your CareerNav scans</span>
+        </div>
+      )}
+
       {!roadmap&&!loading&&(
         <div className="card fade-up" style={{textAlign:"center",padding:"60px 32px"}}>
           <div style={{fontSize:48,marginBottom:16}}>🗺️</div>
           <div style={{fontWeight:700,fontSize:18,marginBottom:8}}>No roadmap yet</div>
-          <div style={{color:"var(--text3)",fontFamily:"var(--mono)",fontSize:13,marginBottom:20}}>Click "Generate Roadmap" and AI will create a personalized plan based on your profile.</div>
+          <div style={{color:"var(--text3)",fontFamily:"var(--mono)",fontSize:13,marginBottom:20}}>Click "Generate Roadmap" and AI will build a plan based on your profile.</div>
+          <div style={{display:"inline-flex",gap:8,alignItems:"center",padding:"10px 16px",background:"rgba(0,229,255,.06)",border:"1px solid rgba(0,229,255,.15)",borderRadius:8}}>
+            <span style={{fontSize:14}}>💡</span>
+            <span style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--text2)"}}>For a smarter roadmap: run <strong>CareerNav → GitHub Analysis</strong> and <strong>LeetCode Analysis</strong> first</span>
+          </div>
         </div>
       )}
 

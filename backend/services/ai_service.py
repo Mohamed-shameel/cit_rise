@@ -205,56 +205,99 @@ Return JSON:
 # CAREER ROADMAP
 # ---------------------------------------
 
-async def generate_career_roadmap(student: dict, achievements: list) -> dict:
+async def generate_career_roadmap(student: dict, github: dict = None, leetcode: dict = None) -> dict:
 
-    sys = "You are CareerNav AI generating career development roadmaps."
+    # ── Extract context from GitHub + LeetCode analyses ──────────────────────
+    github   = github   or student.get("github_analysis",   {})
+    leetcode = leetcode or student.get("leetcode_analysis", {})
 
-    prompt = f"""
-Generate a structured career roadmap.
+    skills    = student.get("skills",    [])
+    interests = student.get("interests", [])
 
-Student:
-{student.get('name')} | {student.get('department')} | Year {student.get('year')}
+    github_domain       = github.get("primary_domain",      "Software")
+    github_level        = github.get("developer_level",     "Intermediate")
+    github_repos        = github.get("public_repos",        0)
+    github_stars        = github.get("total_stars",         0)
+    career_readiness    = github.get("career_readiness",    "Unknown")
 
-Skills:
-{', '.join(student.get('skills',[]))}
+    leetcode_level      = leetcode.get("dsa_level",          "Intermediate")
+    interview_readiness = leetcode.get("interview_readiness","Getting There")
+    leetcode_solved     = leetcode.get("solved_total",       0)
+    company_targets     = leetcode.get("company_targets",    ["Startups"])
 
-Interests:
-{', '.join(student.get('interests',[]))}
+    rise_score = student.get("rise_score", 0)
+    # ─────────────────────────────────────────────────────────────────────────
 
-Return JSON:
+    sys = """You are CareerNav AI — an expert software career mentor.
 
-{{
-"primary_career_path":"string",
-"current_level":"Beginner/Intermediate/Advanced",
-"time_to_job_ready":"X months",
+You generate personalized roadmaps for students based on:
+- skills
+- GitHub portfolio analysis
+- LeetCode performance
+- academic background
+- interests
 
-"immediate_actions":[
-{{"action":"string","why":"string","timeline":"string"}}
-],
+Return STRICT JSON only. No explanation, no markdown, no extra text."""
 
-"skill_gaps":[
-{{"skill":"string","priority":"High/Medium","resource":"string"}}
-],
+    prompt = f"""Student profile:
 
-"milestones":[
-{{"month":1,"goal":"string","outcome":"string"}}
-],
+Name: {student.get('name')}
+Department: {student.get('department')}
+Year: {student.get('year')}
+RISE Score: {rise_score}
 
-"recommended_projects":[
-"project idea 1",
-"project idea 2",
-"project idea 3"
-],
+Skills: {', '.join(skills) if skills else 'None listed'}
+Interests: {', '.join(interests) if interests else 'Not specified'}
 
-"salary_outlook":{{"fresher":"X LPA","3_years":"Y LPA"}},
+GitHub Intelligence:
+- Domain: {github_domain}
+- Developer Level: {github_level}
+- Repos: {github_repos} | Stars: {github_stars}
+- Career Readiness: {career_readiness}
 
-"motivational_note":"1 sentence"
-}}
-"""
+LeetCode Intelligence:
+- DSA Level: {leetcode_level}
+- Interview Readiness: {interview_readiness}
+- Total Solved: {leetcode_solved}
+- Company Targets: {', '.join(company_targets)}
+
+Create a realistic career roadmap perfectly aligned with the student's actual GitHub domain and LeetCode level.
+Be specific about the domain (ML, Web, Systems, Data) based on their GitHub domain.
+Do not give generic advice.
+
+Return JSON in this EXACT format:
+
+{{"primary_career_path":"ML Engineer | Software Engineer | Full Stack Developer | Data Scientist","current_level":"Beginner | Intermediate | Advanced","time_to_job_ready":"X months","immediate_actions":[{{"action":"specific step","why":"reason","timeline":"timeframe"}},{{"action":"specific step","why":"reason","timeline":"timeframe"}},{{"action":"specific step","why":"reason","timeline":"timeframe"}}],"skill_gaps":[{{"skill":"Dynamic Programming","priority":"High","resource":"LeetCode DP track"}},{{"skill":"System Design","priority":"Medium","resource":"Grokking System Design"}}],"milestones":[{{"month":1,"goal":"specific goal","outcome":"measurable outcome"}},{{"month":2,"goal":"specific goal","outcome":"measurable outcome"}},{{"month":3,"goal":"specific goal","outcome":"measurable outcome"}}],"recommended_projects":["project idea 1","project idea 2","project idea 3"],"salary_outlook":{{"fresher":"6-10 LPA","3_years":"15-25 LPA"}},"motivational_note":"1 encouraging sentence tailored to this student"}}"""
 
     raw = await call_llama(prompt, sys)
 
-    roadmap = parse(raw, {})
+    roadmap = parse(raw, {
+        "primary_career_path": f"{github_domain} Engineer",
+        "current_level":       github_level or "Intermediate",
+        "time_to_job_ready":   "5 months",
+        "immediate_actions": [
+            {"action": f"Solve 20 Dynamic Programming problems on LeetCode", "why": "DP is the #1 interview topic at product companies", "timeline": "3 weeks"},
+            {"action": f"Build a portfolio project in {github_domain}", "why": "Demonstrate domain expertise to recruiters", "timeline": "4 weeks"},
+            {"action": "Study System Design fundamentals", "why": "Required for SDE-1 interviews at product companies", "timeline": "2 weeks"}
+        ],
+        "skill_gaps": [
+            {"skill": "Dynamic Programming", "priority": "High",   "resource": "LeetCode DP Study Plan"},
+            {"skill": "System Design",        "priority": "Medium", "resource": "Grokking System Design"},
+            {"skill": "Graph Algorithms",     "priority": "High",   "resource": "LeetCode Graph problems"}
+        ],
+        "milestones": [
+            {"month": 1, "goal": "Strengthen DSA",          "outcome": f"Solve {leetcode_solved + 30} total LeetCode problems"},
+            {"month": 2, "goal": "Build portfolio project", "outcome": f"Deploy a {github_domain}-domain project on GitHub"},
+            {"month": 3, "goal": "Interview preparation",   "outcome": "Complete 10 mock interviews"}
+        ],
+        "recommended_projects": [
+            f"AI-powered Resume Analyzer ({github_domain})",
+            "REST API Backend with FastAPI + PostgreSQL",
+            "Real-time Dashboard with WebSocket"
+        ],
+        "salary_outlook": {"fresher": "6-10 LPA", "3_years": "15-25 LPA"},
+        "motivational_note": f"You've got {github_repos} repos and {leetcode_solved} problems solved — that's a strong foundation. Keep building!"
+    })
 
     return roadmap
 
