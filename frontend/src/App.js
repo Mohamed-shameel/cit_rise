@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Avatar from 'avataaars';
 
 import AdminOpportunitiesPanel from './pages/AdminOpportunities';
 const API = "";  // empty = uses proxy to localhost:8000
@@ -138,6 +139,56 @@ async function apiForm(path, formData) {
   if (!res.ok) throw new Error(data.detail || "Request failed");
   return data;
 }
+
+// ── AvatarWidget ──────────────────────────────────────────────────────────────
+const AvatarWidget = ({ config, size = "100px", style = {} }) => {
+  if (!config) return <div className="avatar" style={{width:size, height:size, fontSize:parseInt(size)/2.5, ...style}}>?</div>;
+  
+  return (
+    <div style={{ position: 'relative', width: size, height: size, ...style }}>
+      {/* Background Aura */}
+      {config.aura && config.aura !== 'none' && (
+        <div style={{
+          position: 'absolute', inset: -10, borderRadius: '50%', zIndex: 0,
+          background: config.aura === 'blue_glow' ? 'radial-gradient(circle, rgba(0,229,255,0.4) 0%, transparent 70%)' :
+                      config.aura === 'cyan_pulse' ? 'radial-gradient(circle, rgba(0,229,255,0.6) 0%, transparent 70%)' :
+                      config.aura === 'purple_crown' ? 'radial-gradient(circle, rgba(124,58,237,0.6) 0%, transparent 70%)' : 'transparent',
+          animation: 'pulse 3s infinite'
+        }}/>
+      )}
+      
+      {/* The Avatar */}
+      <div style={{ position: 'relative', zIndex: 1, width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: 'var(--surface2)', border: '2px solid var(--border)' }}>
+        <Avatar
+          style={{ width: '100%', height: '100%' }}
+          avatarStyle="Circle"
+          topType={config.topType}
+          accessoriesType={config.accessoriesType}
+          hairColor={config.hairColor}
+          facialHairType={config.facialHairType}
+          clotheType={config.clotheType}
+          clotheColor={config.clotheColor}
+          eyeType={config.eyeType}
+          eyebrowType={config.eyebrowType}
+          mouthType={config.mouthType}
+          skinColor={config.skinColor}
+          graphicType={config.graphicType || 'Bat'}
+        />
+      </div>
+
+      {/* Badges */}
+      {config.earnedBadges && config.earnedBadges.length > 0 && (
+        <div style={{ position: 'absolute', bottom: -5, right: -5, zIndex: 2, display: 'flex', gap: 2, flexWrap: 'wrap', maxWidth: '60%' }}>
+          {config.earnedBadges.slice(0, 3).map((b, i) => (
+            <div key={i} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10 }}>
+              {b}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ── ScoreRing ─────────────────────────────────────────────────────────────────
 const ScoreRing = ({score=0, size=160}) => {
@@ -320,16 +371,42 @@ const RegisterPage = ({onComplete, onBack}) => {
 };
 
 // ── STUDENT DASHBOARD ─────────────────────────────────────────────────────────
+const GenderPickerModal = ({ user, onComplete }) => {
+  const [loading, setLoading] = useState(false);
+  const finish = async (gender) => {
+    setLoading(true);
+    try {
+      await api('/avatar/generate', { method: 'POST', body: JSON.stringify({ student_id: user.id, gender, force_regenerate: true }) });
+      onComplete();
+    } catch(e){ alert(e.message); setLoading(false); }
+  };
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.8)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div className="card fade-up" style={{width:"100%",maxWidth:400,textAlign:"center"}}>
+        <div style={{fontSize:48,marginBottom:10}}>🤖</div>
+        <div style={{fontWeight:800,fontSize:20,marginBottom:6}}>Generate AI Avatar</div>
+        <div style={{fontSize:13,color:"var(--text2)",marginBottom:24}}>Select your style for Llama to generate a personalized avatar matching your skills and domain.</div>
+        <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+          <button className="btn btn-secondary" onClick={()=>finish("male")} disabled={loading}>{loading?<Spinner/>:"Male"}</button>
+          <button className="btn btn-secondary" onClick={()=>finish("female")} disabled={loading}>{loading?<Spinner/>:"Female"}</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const StudentDashboard = ({user, setPage}) => {
   const [student,setStudent] = useState(null);
   const [achievements,setAchievements] = useState([]);
   const [loading,setLoading] = useState(true);
+  const [showGenderModal, setShowGenderModal] = useState(false);
 
   useEffect(()=>{
     const load = async()=>{
       try {
         const [s,a] = await Promise.all([api(`/users/${user.id}`), api(`/achievements/${user.id}`)]);
         setStudent(s); setAchievements(a.achievements||[]);
+        if (!s.avatar_config) setShowGenderModal(true);
       } catch{}
       setLoading(false);
     };
@@ -345,6 +422,7 @@ const StudentDashboard = ({user, setPage}) => {
 
   return (
     <div className="page">
+      {showGenderModal && <GenderPickerModal user={user} onComplete={()=>{setShowGenderModal(false); window.location.reload();}} />}
       <div className="page-header fade-up">
         <div className="page-title">Welcome back, {student.name?.split(" ")[0]} 👋</div>
         <div className="page-subtitle">{student.department} · Year {student.year} · CIT Chennai</div>
@@ -354,16 +432,32 @@ const StudentDashboard = ({user, setPage}) => {
         <div className="card">
           <div className="card-title">Profile</div>
           <div style={{display:"flex",gap:16,marginBottom:16}}>
-            <div className="avatar" style={{width:52,height:52,borderRadius:14,fontSize:22,flexShrink:0}}>{student.name?.[0]}</div>
-            <div>
+            <AvatarWidget config={student.avatar_config} size="80px" />
+            <div style={{flex: 1}}>
               <div style={{fontWeight:700,fontSize:18}}>{student.name}</div>
               <div style={{fontFamily:"var(--mono)",fontSize:12,color:"var(--text3)",marginTop:2}}>{student.email}</div>
-              <div style={{marginTop:8}}><span className={`badge ${badgeColor(badge)}`}>🏅 {badge}</span></div>
+              <div style={{marginTop:8}}>
+                <span className={`badge ${badgeColor(badge)}`}>🏅 {badge}</span>
+                {student.avatar_config?.title && <span className="badge badge-purple" style={{marginLeft:6}}>{student.avatar_config.title}</span>}
+              </div>
             </div>
           </div>
+          {student.avatar_config?.avatarStory && (
+            <div style={{fontStyle:"italic", fontSize:12, color:"var(--accent)", marginBottom:10, padding: 8, background:"rgba(0,229,255,0.05)", borderRadius: 6, borderLeft: "2px solid var(--accent)"}}>
+              "{student.avatar_config.avatarStory}"
+            </div>
+          )}
           {student.ai_profile_summary&&<div style={{fontSize:13,color:"var(--text2)",lineHeight:1.6,marginBottom:12}}>{student.ai_profile_summary}</div>}
           <div style={{marginBottom:10}}>{student.skills?.map(s=><Tag key={s} label={s}/>)}</div>
           {student.innovation_potential&&<span className={`badge ${student.innovation_potential==="High"?"badge-green":"badge-amber"}`}>{student.innovation_potential} Innovation Potential</span>}
+          <button className="btn btn-secondary btn-sm" style={{marginTop: 10, width: "100%", justifyContent: "center"}} onClick={async () => {
+            const btn = document.getElementById('regen-btn');
+            if (btn) btn.innerHTML = '<div class="spinner"></div> Regenerating...';
+            try {
+               await api('/users/regenerate-profile', { method: 'POST', body: JSON.stringify({student_id: user.id}) });
+               window.location.reload();
+            } catch (e) { alert(e.message); }
+          }} id="regen-btn">🔄 Regenerate AI Summary</button>
         </div>
 
         <div className="card">
@@ -1050,9 +1144,20 @@ const MentorsPage = ({user}) => {
               {m.bio&&<div style={{fontSize:13,color:"var(--text2)",lineHeight:1.5,marginBottom:10}}>{m.bio}</div>}
               <div style={{marginBottom:8}}>{m.skills?.map(s=><Tag key={s} label={s}/>)}</div>
               {m.match_score>0&&<div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--success)",marginBottom:8}}>✓ {m.match_score}% skill match</div>}
-              <div style={{display:"flex",gap:8,alignItems:"center",marginTop:8}}>
+              <div style={{display:"flex",gap:8,alignItems:"center",marginTop:8, flexWrap:"wrap"}}>
                 {m.linkedin&&<a href={`https://${m.linkedin}`} target="_blank" rel="noreferrer" style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--accent)",textDecoration:"none"}}>LinkedIn →</a>}
                 {user.role==="student"&&<button className="btn btn-secondary btn-sm" style={{marginLeft:"auto"}} onClick={()=>openChat(m)}>💬 Message</button>}
+                {user.role==="admin"&&<button className="btn btn-secondary btn-sm" style={{marginLeft:"auto"}} onClick={async ()=>{
+                    const title = prompt("Edit Mentor bio:", m.bio || "");
+                    if(title !== null) {
+                      try { await api(`/mentors/${m.mentor_id}`, {method:"PUT", body:JSON.stringify({bio: title})}); const [ma,r]=await Promise.all([api("/mentors/"),api(`/mentors/recommend/${user.id||"admin"}`)]); setMentors(ma.mentors||[]); setRecs(r.recommended_mentors||[]); } catch(e){alert(e.message)}
+                    }
+                }}>Edit</button>}
+                {user.role==="admin"&&<button className="btn btn-danger btn-sm" onClick={async ()=>{
+                    if(window.confirm("Delete this mentor?")) {
+                      try { await api(`/mentors/${m.mentor_id}`, {method:"DELETE"}); const [ma,r]=await Promise.all([api("/mentors/"),api(`/mentors/recommend/${user.id||"admin"}`)]); setMentors(ma.mentors||[]); setRecs(r.recommended_mentors||[]); } catch(e){alert(e.message)}
+                    }
+                }}>Delete</button>}
               </div>
             </div>
           ))}
@@ -1168,7 +1273,10 @@ const OpportunitiesPage = ({user}) => {
                 {user.role==="admin"&&<button className="btn btn-danger btn-sm" onClick={()=>deleteOpp(o.opportunity_id)}>Delete</button>}
               </div>
               <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.5,marginBottom:10}}>{o.description}</div>
-              {o.deadline&&<div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text3)"}}>Deadline: {o.deadline}</div>}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                {o.deadline ? <div style={{fontFamily:"var(--mono)",fontSize:11,color:"var(--text3)"}}>Deadline: {o.deadline}</div> : <div/>}
+                {o.source_url && <a href={o.source_url} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm" style={{textDecoration:"none"}}>Apply / View →</a>}
+              </div>
             </div>
           ))}
           {filtered.length===0&&<div style={{gridColumn:"1/-1",textAlign:"center",padding:48,color:"var(--text3)",fontFamily:"var(--mono)"}}>No opportunities found.</div>}
@@ -1455,13 +1563,26 @@ const AdminDashboard = () => {
         <div className="card fade-up">
           <div className="card-title">Top Innovators by RISE Score</div>
           <table className="table">
-            <thead><tr><th>Name</th><th>Department</th><th>RISE Score</th><th>Badge</th></tr></thead>
+            <thead><tr><th>Name</th><th>Department</th><th>RISE Score</th><th>Badge</th><th>Actions</th></tr></thead>
             <tbody>{data.top_innovators?.map(s=>(
               <tr key={s.user_id}>
                 <td style={{fontWeight:600}}>{s.name}</td>
                 <td><span className="badge badge-blue">{s.department}</span></td>
                 <td style={{fontFamily:"var(--mono)",color:"var(--accent)",fontWeight:700}}>{s.rise_score}</td>
                 <td><span className={`badge ${badgeColor(s.badge)}`}>🏅 {s.badge}</span></td>
+                <td>
+                  <button className="btn btn-secondary btn-sm" onClick={()=>{
+                    const val = prompt(`Enter new score for ${s.name}:`, s.rise_score);
+                    if(val!==null && !isNaN(val)) {
+                      api(`/users/admin/students/${s.user_id}/score`, {method:"PUT", body:JSON.stringify({rise_score: parseInt(val)})}).then(()=>window.location.reload()).catch(e=>alert(e.message));
+                    }
+                  }}>Edit Score</button>
+                  <button className="btn btn-danger btn-sm" style={{marginLeft:8}} onClick={()=>{
+                    if(window.confirm(`Delete ${s.name}?`)) {
+                      api(`/users/${s.user_id}`, {method:"DELETE"}).then(()=>window.location.reload()).catch(e=>alert(e.message));
+                    }
+                  }}>Remove</button>
+                </td>
               </tr>
             ))}</tbody>
           </table>
@@ -1483,6 +1604,10 @@ const AdminDashboard = () => {
                     {a.description&&<div style={{fontSize:12,color:"var(--text2)",marginTop:4}}>{a.description}</div>}
                   </div>
                   <div style={{display:"flex",gap:8,flexShrink:0}}>
+                    <button className="btn btn-secondary btn-sm" onClick={()=>{
+                      const title = prompt("Edit achievement title:", a.title);
+                      if(title) api(`/achievements/${a.achievement_id}`, {method:"PUT", body:JSON.stringify({title})}).then(()=>window.location.reload()).catch(e=>alert(e.message));
+                    }}>Edit</button>
                     <button className="btn btn-success btn-sm" onClick={()=>verify(a.achievement_id)}>✓ Verify</button>
                     <button className="btn btn-danger btn-sm" onClick={()=>reject(a.achievement_id)}>✗ Reject</button>
                   </div>
@@ -1795,9 +1920,15 @@ const AdminIdeasPage = ({user}) => {
 
               {i.status === "pending" && (
                 <div style={{display:"flex",gap:8,borderTop:"1px solid var(--border)",paddingTop:12}}>
+                  <button className="btn btn-secondary btn-sm" onClick={()=>{const n=prompt("Edit Title:", i.title); if(n) { api(`/ideas/${i.id}`,{method:"PUT",body:JSON.stringify({title:n})}).then(load).catch(e=>alert(e.message)) }}}>Edit</button>
                   <button className="btn btn-success btn-sm" onClick={()=>reviewIdea(i.id, "selected")}>+40pts (Select)</button>
                   <button className="btn btn-secondary btn-sm" onClick={()=>reviewIdea(i.id, "reviewed")}>+20pts (Review)</button>
                   <button className="btn btn-danger btn-sm" onClick={()=>reviewIdea(i.id, "rejected")}>Reject</button>
+                </div>
+              )}
+              {i.status !== "pending" && (
+                <div style={{display:"flex",gap:8,borderTop:"1px solid var(--border)",paddingTop:12}}>
+                  <button className="btn btn-danger btn-sm" onClick={()=>{ if(window.confirm("Delete idea?")){ api(`/ideas/${i.id}`,{method:"DELETE"}).then(load).catch(e=>alert(e.message)) }}}>Delete Idea</button>
                 </div>
               )}
             </div>
@@ -1819,7 +1950,6 @@ const STUDENT_NAV = [
   {id:"mentors",label:"Mentors",icon:"🤝"},
   {id:"opportunities",label:"Opportunities",icon:"🎯"},
   {id:"submit-idea",label:"Ideas",icon:"💡"},
-  {id:"leaderboard",label:"Leaderboard",icon:"🏆"},
   {id:"chat",label:"AI Assistant",icon:"💬"},
 ];
 const ADMIN_NAV = [
@@ -1859,7 +1989,6 @@ export default function App() {
         case "opportunities":return user.role === "admin" ? <AdminOpportunitiesPanel user={user}/> : <OpportunitiesPage user={user}/>;
         case "submit-idea":  return <SubmitIdeaPage user={user}/>;
         case "admin-ideas":  return <AdminIdeasPage user={user}/>;
-        case "leaderboard":  return <LeaderboardPage user={user}/>;
         case "chat":         return <ChatPage user={user}/>;
         case "admin":        return <AdminDashboard/>;
         default:             return <StudentDashboard user={user} setPage={setPage}/>;
@@ -1885,7 +2014,11 @@ export default function App() {
         ))}
         <div className="sidebar-footer">
           <div className="user-chip">
-            <div className="avatar">{user.name?.[0]}</div>
+            {user.role === "student" && user.avatar_config ? (
+               <AvatarWidget config={user.avatar_config} size="32px" />
+            ) : (
+               <div className="avatar">{user.name?.[0]}</div>
+            )}
             <div>
               <div className="user-name">{user.name}</div>
               <div className="user-role" style={{cursor:"pointer",color:"var(--danger)"}} onClick={handleLogout}>Sign out</div>

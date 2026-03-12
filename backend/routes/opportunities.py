@@ -6,7 +6,8 @@ import uuid
 
 from config.store import opportunities_db, user_opportunities, deduplication_log, scraper_logs, users_db
 from services.scraper_service import (
-    scrape_unstop_html, enrich_opportunity_with_ai, find_duplicates, merge_opportunities
+    scrape_unstop_html, scrape_hackerrank_mock, scrape_internshala_mock,
+    enrich_opportunity_with_ai, find_duplicates, merge_opportunities
 )
 from services.opportunity_scoring import calculate_opportunity_impact
 
@@ -24,6 +25,18 @@ class OppCreate(BaseModel):
     company: str
     location: Optional[str] = "India"
     source_url: str
+    deadline: Optional[str] = None
+    salary_range: Optional[str] = None
+    duration: Optional[str] = None
+
+class OppUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    domain: Optional[List[str]] = None
+    type: Optional[str] = None
+    company: Optional[str] = None
+    location: Optional[str] = None
+    source_url: Optional[str] = None
     deadline: Optional[str] = None
     salary_range: Optional[str] = None
     duration: Optional[str] = None
@@ -249,6 +262,18 @@ async def admin_create_opportunity(opp: OppCreate):
     
     return {"message": "Opportunity created", "opportunity_id": opp_id, "opportunity": opp_record}
 
+@router.put("/admin/{opp_id}")
+async def admin_update_opportunity(opp_id: str, update: OppUpdate):
+    """Admin updates an opportunity"""
+    if opp_id not in opportunities_db:
+        raise HTTPException(404, "Opportunity not found")
+    
+    opp = opportunities_db[opp_id]
+    for k, v in update.model_dump(exclude_none=True).items():
+        opp[k] = v
+    opp["updated_at"] = datetime.utcnow().isoformat()
+    return {"message": "Opportunity updated", "opportunity": opp}
+
 @router.put("/admin/{opp_id}/verify")
 async def admin_verify_opportunity(opp_id: str):
     """Admin verifies a custom opportunity"""
@@ -309,6 +334,84 @@ async def admin_sync_unstop():
             "total_opportunities": len(opportunities_db)
         }
     
+    except Exception as e:
+        raise HTTPException(500, f"Sync failed: {str(e)}")
+
+@router.post("/admin/sync-hackerrank")
+async def admin_sync_hackerrank():
+    """Admin triggers HackerRank scraper"""
+    try:
+        new_opps = await scrape_hackerrank_mock()
+        added = 0
+        duplicates = 0
+        for new_opp in new_opps:
+            duplicate_id = find_duplicates(new_opp, opportunities_db)
+            if duplicate_id:
+                merge_record = merge_opportunities(duplicate_id, new_opp.get("source_id"), "hackerrank")
+                deduplication_log[merge_record["merge_id"]] = merge_record
+                duplicates += 1
+            else:
+                opp_id = new_opp.get("opportunity_id", f"opp_{uuid.uuid4().hex[:8]}")
+                new_opp = await enrich_opportunity_with_ai(new_opp)
+                opportunities_db[opp_id] = new_opp
+                added += 1
+        
+        sync_log_id = f"sync_{uuid.uuid4().hex[:8]}"
+        scraper_logs[sync_log_id] = {
+            "sync_id": sync_log_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "source": "hackerrank",
+            "total_fetched": len(new_opps),
+            "added": added,
+            "duplicates": duplicates,
+            "status": "completed"
+        }
+        return {
+            "message": "Sync completed",
+            "total_fetched": len(new_opps),
+            "added": added,
+            "duplicates": duplicates,
+            "total_opportunities": len(opportunities_db)
+        }
+    except Exception as e:
+        raise HTTPException(500, f"Sync failed: {str(e)}")
+
+@router.post("/admin/sync-internshala")
+async def admin_sync_internshala():
+    """Admin triggers Internshala scraper"""
+    try:
+        new_opps = await scrape_internshala_mock()
+        added = 0
+        duplicates = 0
+        for new_opp in new_opps:
+            duplicate_id = find_duplicates(new_opp, opportunities_db)
+            if duplicate_id:
+                merge_record = merge_opportunities(duplicate_id, new_opp.get("source_id"), "internshala")
+                deduplication_log[merge_record["merge_id"]] = merge_record
+                duplicates += 1
+            else:
+                opp_id = new_opp.get("opportunity_id", f"opp_{uuid.uuid4().hex[:8]}")
+                new_opp = await enrich_opportunity_with_ai(new_opp)
+                opportunities_db[opp_id] = new_opp
+                added += 1
+        
+        sync_log_id = f"sync_{uuid.uuid4().hex[:8]}"
+        scraper_logs[sync_log_id] = {
+            "sync_id": sync_log_id,
+            "timestamp": datetime.utcnow().isoformat(),
+            "source": "internshala",
+            "total_fetched": len(new_opps),
+            "added": added,
+            "duplicates": duplicates,
+            "status": "completed"
+        }
+        return {
+            "message": "Sync completed",
+            "total_fetched": len(new_opps),
+            "added": added,
+            "duplicates": duplicates,
+            "total_opportunities": len(opportunities_db)
+        }
     except Exception as e:
         raise HTTPException(500, f"Sync failed: {str(e)}")
 

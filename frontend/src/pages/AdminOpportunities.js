@@ -83,6 +83,34 @@ const AdminOpportunitiesPanel = () => {
     }
   };
 
+  const handleSyncHackerRank = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('http://localhost:8000/opportunities/admin/sync-hackerrank', {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`✅ Sync completed!\nAdded: ${data.added}\nDuplicates merged: ${data.duplicates}`);
+        fetchOpportunities(); fetchSyncLogs(); fetchDeduplicationLogs();
+      } else { alert(`❌ Sync failed: ${data.detail}`); }
+    } catch (error) { alert('Sync failed'); } finally { setLoading(false); }
+  };
+
+  const handleSyncInternshala = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('http://localhost:8000/opportunities/admin/sync-internshala', {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`✅ Sync completed!\nAdded: ${data.added}\nDuplicates merged: ${data.duplicates}`);
+        fetchOpportunities(); fetchSyncLogs(); fetchDeduplicationLogs();
+      } else { alert(`❌ Sync failed: ${data.detail}`); }
+    } catch (error) { alert('Sync failed'); } finally { setLoading(false); }
+  };
+
   const handleCreateOpportunity = async (e) => {
     e.preventDefault();
 
@@ -150,6 +178,25 @@ const AdminOpportunitiesPanel = () => {
     }
   };
 
+  const handleEditOpportunity = async (opp) => {
+    const newTitle = window.prompt("Edit Opportunity Title:", opp.title);
+    if (!newTitle) return;
+    try {
+      const res = await fetch(`http://localhost:8000/opportunities/admin/${opp.opportunity_id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newTitle })
+      });
+      if (res.ok) {
+        fetchOpportunities();
+      } else {
+        alert('❌ Failed to update opportunity');
+      }
+    } catch (error) {
+      console.error('Edit error:', error);
+    }
+  };
+
   const handleVerifyOpportunity = async (oppId) => {
     try {
       const res = await fetch(`http://localhost:8000/opportunities/admin/${oppId}/verify`, {
@@ -184,7 +231,21 @@ const AdminOpportunitiesPanel = () => {
           onClick={handleSyncUnstop}
           disabled={loading}
         >
-          {loading ? '⏳ Syncing...' : '🔄 Sync Unstop'}
+          {loading ? '⏳' : '🔄 Sync Unstop'}
+        </button>
+        <button
+          className="btn-action btn-sync" style={{background: "#28a745", borderColor: "#28a745"}}
+          onClick={handleSyncHackerRank}
+          disabled={loading}
+        >
+          {loading ? '⏳...' : '🔄 Sync HackerRank'}
+        </button>
+        <button
+          className="btn-action btn-sync" style={{background: "#17a2b8", borderColor: "#17a2b8"}}
+          onClick={handleSyncInternshala}
+          disabled={loading}
+        >
+          {loading ? '⏳...' : '🔄 Sync Internshala'}
         </button>
         <button
           className="btn-action btn-create"
@@ -368,6 +429,13 @@ const AdminOpportunitiesPanel = () => {
                       Verify
                     </button>
                   )}
+                  <button
+                    className="btn-action"
+                    style={{background: "var(--accent2)", color:"#fff", border:"none"}}
+                    onClick={() => handleEditOpportunity(opp)}
+                  >
+                    Edit
+                  </button>
                   <button
                     className="btn-delete"
                     onClick={() => handleDeleteOpportunity(opp.opportunity_id)}

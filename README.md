@@ -81,27 +81,35 @@ CIT RISE integrates **CareerNav AI** (Team Helios) for developer intelligence:
 - Gemini API key (free at [aistudio.google.com](https://aistudio.google.com/app/apikey))
 
 ### Backend
+**Note:** Open a dedicated terminal for the backend. If using Windows, activating the Python `venv` might conflict with global npm commands later, so always keep your backend and frontend in separate tabs!
 
 ```bash
 cd backend
+# Activate your virtual environment (Windows)
+.\venv\Scripts\activate
 pip install -r requirements.txt
 
-# Create .env file
+# Create .env file if you haven't already
 echo "GEMINI_API_KEY=your_key_here" > .env
-# optionally override model (default is gemini-2.5-flash)
-# echo "GEMINI_MODEL=gemini-2.5-flash" >> .env
 # Start server
 uvicorn main:app --reload
 # API docs at http://localhost:8000/docs
 ```
 
 ### Frontend
+**Note:** Open a *new, separate terminal* for the frontend (do NOT activate the Python `venv` here).
 
 ```bash
 cd frontend
 npm install
 npm start
 # App at http://localhost:3000
+```
+
+*Troubleshooting:* If you recently installed Node.js but `npm start` tells you "npm is not recognized", you may need to completely restart VS Code or your computer to reload your system PATH. Alternatively, you can temporarily inject it into your current PowerShell session:
+```powershell
+$env:Path += ";C:\Program Files\nodejs"
+npm start
 ```
 
 ---
@@ -150,6 +158,12 @@ Full interactive docs at `/docs` when running locally.
 | External APIs | GitHub Public API, LeetCode GraphQL |
 | Database | In-memory (demo) → Firebase Firestore (production) |
 | Deployment | Render (backend), Vercel (frontend) |
+
+### Why this stack?
+- **FastAPI:** Extremely high performance for AI data processing and asynchronous tasks, enabling real-time generation of roadmaps and resume parsing without blocking the main workflow.
+- **React 18:** Enables a highly responsive, single-page application experience with rapid state updates for complex dashboards.
+- **Gemini 2.5 Flash:** Offers the optimal balance of speed, cost, and expansive context windows required to ingest entire student resumes and generate massive JSON intelligence reports instantly.
+- **External GraphQL/REST APIs:** Directly interfacing with GitHub and LeetCode guarantees that the "Innovation Profile" relies on cryptographically verifiable proof-of-work rather than student self-reporting.
 
 ---
 

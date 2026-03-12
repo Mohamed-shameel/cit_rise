@@ -133,6 +133,55 @@ async def scrape_unstop_html() -> List[Dict]:
     return opportunities
 
 
+async def scrape_hackerrank_mock() -> List[Dict]:
+    """Mock scraper for HackerRank opportunities"""
+    opportunities = []
+    # Generate some mock data
+    opp = {
+        "opportunity_id": f"hr_{uuid.uuid4().hex[:8]}",
+        "title": "HackerRank Coding Championship 2026",
+        "description": "Compete with top coders worldwide. Algorithms, Data Structures, and AI challenges.",
+        "domain": ["Computer Science", "Competitive Programming", "Algorithms"],
+        "type": "competition",
+        "company": "HackerRank",
+        "location": "Online / Global",
+        "source": "hackerrank",
+        "source_id": f"hr_{uuid.uuid4().hex[:8]}",
+        "source_url": "https://www.hackerrank.com/contests",
+        "deadline": datetime.utcnow().isoformat(),
+        "verified": True,
+        "created_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.utcnow().isoformat(),
+    }
+    opportunities.append(opp)
+    logger.info(f"Scraped {len(opportunities)} opportunities from HackerRank (mock)")
+    return opportunities
+
+
+async def scrape_internshala_mock() -> List[Dict]:
+    """Mock scraper for Internshala opportunities"""
+    opportunities = []
+    opp = {
+        "opportunity_id": f"is_{uuid.uuid4().hex[:8]}",
+        "title": "Software Engineering Internship",
+        "description": "Join our fast-paced startup to build scalable backend systems and sleek React frontends.",
+        "domain": ["Software Development", "Web Development", "Backend"],
+        "type": "internship",
+        "company": "TechNova Solutions",
+        "location": "Remote / India",
+        "source": "internshala",
+        "source_id": f"is_{uuid.uuid4().hex[:8]}",
+        "source_url": "https://internshala.com/internships",
+        "deadline": datetime.utcnow().isoformat(),
+        "verified": True,
+        "created_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.utcnow().isoformat(),
+    }
+    opportunities.append(opp)
+    logger.info(f"Scraped {len(opportunities)} opportunities from Internshala (mock)")
+    return opportunities
+
+
 def classify_opportunity_type(category: str) -> str:
     """Map Unstop category to our opportunity types"""
     category_lower = category.lower()
