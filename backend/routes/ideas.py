@@ -316,6 +316,8 @@ def admin_review_idea(idea_id: str, data: IdeaReview, admin_user_id: str = "admi
             "comment": data.admin_comment,
             "timestamp": datetime.utcnow().isoformat()
         }
+        if idea_id not in idea_comments_db:
+            idea_comments_db[idea_id] = []
         idea_comments_db[idea_id].append(comment)
     
     # Update RISE score if selected
@@ -352,6 +354,8 @@ def add_admin_comment(idea_id: str, data: CommentAdd, admin_user_id: str = "admi
         "comment": data.comment,
         "timestamp": datetime.utcnow().isoformat()
     }
+    if idea_id not in idea_comments_db:
+        idea_comments_db[idea_id] = []
     idea_comments_db[idea_id].append(comment)
     
     return {

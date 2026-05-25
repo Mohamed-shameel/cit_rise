@@ -149,6 +149,10 @@ async def register_for_opportunity(opp_id: str, user_opp: UserOppRegister):
     if opp_id not in opportunities_db:
         raise HTTPException(404, "Opportunity not found")
     
+    if user_opp.user_id not in users_db:
+        raise HTTPException(404, "Student not found")
+
+    
     # Check if already registered
     existing = [uo for uo in user_opportunities.values() 
                 if uo.get("user_id") == user_opp.user_id and uo.get("opportunity_id") == opp_id]

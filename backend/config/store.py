@@ -51,6 +51,14 @@ def seed():
         "career_roadmap":None,"created_at":datetime.utcnow().isoformat(),
         "avatar_config": None, "gender": "male", "avatar_generated_at": None, "score_history": []
     }
+    users_db["admin"] = {
+        "user_id": "admin", "name": "System Admin", "email": "admin@citchennai.net",
+        "role": "admin", "department": "Admin", "created_at": datetime.utcnow().isoformat()
+    }
+    users_db["admin_001"] = {
+        "user_id": "admin_001", "name": "Admin Officer", "email": "admin001@citchennai.net",
+        "role": "admin", "department": "Admin", "created_at": datetime.utcnow().isoformat()
+    }
 
     # ── 15 Synthetic Students ──────────────────────────────────────────────────
     users_db["student_001"] = {

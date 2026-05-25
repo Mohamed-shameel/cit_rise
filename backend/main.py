@@ -21,8 +21,11 @@ app.include_router(mentors.router,      prefix="/mentors",     tags=["Mentors"])
 app.include_router(careernav.router,    prefix="/careernav",   tags=["CareerNav AI"])
 app.include_router(ideas.router,        prefix="/ideas",       tags=["Ideas"])
 app.include_router(avatar.router,       prefix="/avatar",       tags=["Avatar"])
+
 app.include_router(chat.router,         prefix="/chat",         tags=["MentorChat"])
 app.include_router(notifications.router,prefix="/notifications", tags=["Notifications"])
+
+API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 @app.get("/")
 def root():

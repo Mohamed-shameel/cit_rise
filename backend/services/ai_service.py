@@ -68,12 +68,16 @@ def parse(raw: str, fallback: dict) -> dict:
             if clean.startswith("json"):
                 clean = clean[4:]
 
-        return json.loads(clean.strip())
+        res = json.loads(clean.strip())
+        if isinstance(res, dict) and "error" in res:
+            return fallback
+        return res
 
     except Exception as e:
         print("[AI JSON PARSE ERROR]", e)
         print("[RAW RESPONSE]", raw[:500])
         return fallback
+
 
 
 # ---------------------------------------

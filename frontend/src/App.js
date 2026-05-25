@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Avatar from 'avataaars';
 
 import AdminOpportunitiesPanel from './pages/AdminOpportunities';
-const API = "";  // empty = uses proxy to localhost:8000
+const API = process.env.REACT_APP_API_URL || "";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
