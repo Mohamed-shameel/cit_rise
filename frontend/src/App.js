@@ -124,18 +124,27 @@ const safeStr = v => {
 const badgeColor = b => ({Pioneer:"badge-purple",Innovator:"badge-blue",Explorer:"badge-amber",Starter:"badge-green"}[b]||"badge-blue");
 
 async function api(path, opts={}) {
-  const res = await fetch(`${API}${path}`, {
-    headers: {"Content-Type":"application/json"},
-    ...opts
-  });
-  const data = await res.json();
+  if (!API) throw new Error("Backend URL not configured. Set REACT_APP_API_URL.");
+  let res;
+  try { res = await fetch(`${API}${path}`, { headers: {"Content-Type":"application/json"}, ...opts }); }
+  catch (e) { throw new Error("Cannot reach backend. Check your internet or backend URL."); }
+  const text = await res.text();
+  if (!text) throw new Error("Empty response from server.");
+  let data;
+  try { data = JSON.parse(text); } catch { throw new Error(`Server returned non-JSON: ${text.slice(0,120)}`); }
   if (!res.ok) throw new Error(data.detail || "Request failed");
   return data;
 }
 
 async function apiForm(path, formData) {
-  const res = await fetch(`${API}${path}`, {method:"POST", body:formData});
-  const data = await res.json();
+  if (!API) throw new Error("Backend URL not configured. Set REACT_APP_API_URL.");
+  let res;
+  try { res = await fetch(`${API}${path}`, {method:"POST", body:formData}); }
+  catch (e) { throw new Error("Cannot reach backend. Check your internet or backend URL."); }
+  const text = await res.text();
+  if (!text) throw new Error("Empty response from server.");
+  let data;
+  try { data = JSON.parse(text); } catch { throw new Error(`Server returned non-JSON: ${text.slice(0,120)}`); }
   if (!res.ok) throw new Error(data.detail || "Request failed");
   return data;
 }
